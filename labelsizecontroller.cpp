@@ -45,7 +45,7 @@
  *		and setting a font size of 0 causes Qt to spit out a
  *		complaint. So make the font size spin boxes show no
  *		decimal places, and also start at 1 and go up from there.
- *              UPDATE: No longer doublespinboxes so no need to set decimals.
+ *		UPDATE: No longer doublespinboxes so no need to set decimals.
  */
 
 LabelSizeController::LabelSizeController(Edge * anEdge, QSpinBox * aBox)
