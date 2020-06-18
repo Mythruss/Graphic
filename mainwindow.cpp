@@ -2,7 +2,7 @@
  * File:	mainwindow.cpp
  * Author:	Rachel Bood
  * Date:	January 25, 2015.
- * Version:	1.28
+ * Version:	1.29
  *
  * Purpose:	Implement the main window and functions called from there.
  *
@@ -212,6 +212,19 @@
  *	nodes at a specified value instead of always 0.
  * May 28, 2020 (IC V1.29)
  *  (a) Modified save_Graph() to use a white background for JPEG files.
+ * June 6, 2020 (IC V1.30)
+ *  (a) Added set_Interface_Sizes() to fix sizing issues on monitors with
+ *      different DPIs.
+ * June 9, 2020 (IC V1.31)
+ *  (a) Converted the node and edge label size doublespinboxes into
+ *      regular spinboxes and updated any relevant connect statements.
+ * June 10, 2020 (IC V1.32)
+ *  (a) Added QSettings to save the window size on exit and load the size
+ *      on startup. See saveSettings() and loadSettings()
+ *  (b) Reimplemented closeEvent() to accommodate QSettings and prompt user to
+ *      save graph if any exists on the canvas.
+ *  (c) Added code to saveGraph() that supports saving default background
+ *      colour of saved images. WIP
  */
 
 #include "mainwindow.h"
@@ -237,6 +250,7 @@
 #include <QErrorMessage>
 #include <QDate>
 #include <QFont>
+#include <QCloseEvent>
 
 
 #define GRAPHiCS_FILE_EXTENSION "grphc"
@@ -245,9 +259,6 @@
 #define TIKZ_SAVE_FILE		"TikZ (*.tikz)"
 #define EDGES_SAVE_FILE		"Edge list (*.edges)"
 #define SVG_SAVE_FILE		"SVG (*.svg)"
-
-#define BUTTON_STYLE "border-style: outset; border-width: 2px; " \
-	     "border-radius: 5px; border-color: beige; padding: 3px;"
 
 // The unit of these is points:
 #define TITLE_SIZE	    20
@@ -263,6 +274,9 @@
 #define VP_PREC_GRPHC  4
 
 static qreal screenPhysicalDPI_X, screenPhysicalDPI_Y;
+static qreal screenLogicalDPI_X;
+
+QSettings settings("Acadia", "Graphic");
 
 /*
  * Name:	MainWindow
@@ -308,12 +322,12 @@ QMainWindow(parent),
     //       before quitting.
     new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Q), this, SLOT(close()));
 
-    // Ctrl-O pops up the open file dialog.
-    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_O),
-		  this, SLOT(load_Graphic_File()));
+    // Ctrl-O pops up the open file dialog. REDUNDANT
+    //new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_O),
+    //              this, SLOT(load_Graphic_File()));
 
-    // Save dialog pops up via Ctrl-S.
-    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_S), this, SLOT(save_Graph()));
+    // Save dialog pops up via Ctrl-S. REDUNDANT
+    //new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_S), this, SLOT(save_Graph()));
 
     // DEBUG HELP:
     // Dump TikZ to stdout
@@ -341,7 +355,7 @@ QMainWindow(parent),
 	    (void(QLineEdit::*)(const QString &))&QLineEdit::textChanged,
 	    this, [this]() { generate_Graph(nodeLabel2_WGT); });
     connect(ui->NodeLabelSize,
-	    (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
+            (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
 	    this, [this]() { generate_Graph(nodeLabelSize_WGT); });
     connect(ui->NumLabelCheckBox,
 	    (void(QCheckBox::*)(bool))&QCheckBox::clicked,
@@ -365,7 +379,7 @@ QMainWindow(parent),
 	    (void(QLineEdit::*)(const QString &))&QLineEdit::textChanged,
 	    this, [this]() { generate_Graph(edgeLabel_WGT); });
     connect(ui->EdgeLabelSize,
-	    (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
+            (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
 	    this, [this]() { generate_Graph(edgeLabelSize_WGT); });
     connect(ui->EdgeLineColor,
 	    (void(QPushButton::*)(bool))&QPushButton::clicked,
@@ -386,8 +400,8 @@ QMainWindow(parent),
 	    (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
 	    this, [this]() { generate_Graph(graphWidth_WGT); });
     connect(ui->numOfNodes1,
-	    (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
-	    this, [this]() { generate_Graph(numOfNodes1_WGT); });
+            (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
+            this, [this]() { generate_Graph(numOfNodes1_WGT); });
     connect(ui->numOfNodes2,
 	    (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
 	    this, [this]() { generate_Graph(numOfNodes2_WGT); });
@@ -405,7 +419,7 @@ QMainWindow(parent),
 	    this, SLOT(nodeParamsUpdated()));
     connect(ui->NodeLabel2, SIGNAL(textChanged(QString)),
 	    this, SLOT(nodeParamsUpdated()));
-    connect(ui->NodeLabelSize, SIGNAL(valueChanged(double)),
+    connect(ui->NodeLabelSize, SIGNAL(valueChanged(int)),
 	    this, SLOT(nodeParamsUpdated()));
     connect(ui->NumLabelCheckBox, SIGNAL(clicked(bool)),
 	    this, SLOT(nodeParamsUpdated()));
@@ -418,7 +432,7 @@ QMainWindow(parent),
 	    this, SLOT(edgeParamsUpdated()));
     connect(ui->EdgeLabel, SIGNAL(textChanged(QString)),
 	    this, SLOT(edgeParamsUpdated()));
-    connect(ui->EdgeLabelSize, SIGNAL(valueChanged(double)),
+    connect(ui->EdgeLabelSize, SIGNAL(valueChanged(int)),
 	    this, SLOT(edgeParamsUpdated()));
     connect(ui->EdgeLineColor, SIGNAL(clicked(bool)),
 	    this, SLOT(edgeParamsUpdated()));
@@ -460,6 +474,11 @@ QMainWindow(parent),
     QScreen * screen = QGuiApplication::primaryScreen();
     screenPhysicalDPI_X = screen->physicalDotsPerInchX();
     screenPhysicalDPI_Y = screen->physicalDotsPerInchY();
+    screenLogicalDPI_X = screen->logicalDotsPerInchX();
+
+    if (settings.contains("windowSize"))
+        loadSettings();
+
 
 #ifdef DEBUG
     // Info to help with dealing with HiDPI issues
@@ -471,6 +490,7 @@ QMainWindow(parent),
     printf("Pixel resolution:  %d, %d\n",
 	   screen->size().height(), screen->size().width());
     printf("screen->devicePixelRatio: %.3f\n", screen->devicePixelRatio());
+    fflush(stdout);
 #endif
 }
 
@@ -492,7 +512,6 @@ MainWindow::~MainWindow()
 {
     delete ui;
 }
-
 
 
 /*
@@ -568,7 +587,6 @@ saveEdgelist(QTextStream &outfile, QVector<Node *> nodes)
 
     return true;
 }
-
 
 
 /*
@@ -1499,9 +1517,19 @@ MainWindow::save_Graph()
 	QPixmap * image = new QPixmap(ui->canvas->scene()
 				      ->itemsBoundingRect().size().toSize());
 	if (selectedFilter == "JPG (*.jpg)")
-	    image->fill(Qt::white); // JPG backgrounds can't be transparent
+	{
+	    if (settings.contains("jpgColor")) // Where should we ask for bg color?
+		image->fill(settings.value("jpgColor").toString());
+	    else
+		image->fill(Qt::white);
+	}
 	else
-	    image->fill(Qt::transparent);
+	{
+	    if (settings.contains("elseColor")) // Needs better name
+		image->fill(settings.value("elseColor").toString());
+	    else
+		image->fill(Qt::transparent);
+	}
 	QPainter painter(image);
 	painter.setRenderHints(QPainter::Antialiasing
 			       | QPainter::TextAntialiasing
@@ -2267,6 +2295,62 @@ MainWindow::set_Font_Sizes()
     ui->nodeSize->setFont(font);
 }
 
+
+/*
+ * Name:	MainWindow::set_Inferface_Sizes()
+ * Purpose:     Resize the UI and correct widget minimum sizes
+ * Arguments:
+ * Outputs:
+ * Modifies:
+ * Returns:
+ * Assumptions:
+ * Bugs:
+ * Notes:       Still missing height corrections
+ */
+
+void
+MainWindow::set_Interface_Sizes()
+{
+    qreal scale;
+    if (screenLogicalDPI_X > 96)
+        scale = screenLogicalDPI_X/96;
+    else
+        scale = 1;
+    //printf("Scale: %.3f\n", scale);
+
+    // Total width of tabWidget borders
+    int borderWidth1 = (50 * scale); // Which is better?
+    //int borderWidth1 = (ui->scrollAreaWidgetContents_2->width()
+      //                  - ui->tabWidget->width());
+
+    // Total width of mainWindow borders (Not exactly precise yet)
+    int borderWidth2 = (30 * scale);
+
+    // Fix tabWidgets minimum width
+    ui->tabWidget->setMinimumWidth(ui->scrollAreaWidgetContents_2->sizeHint().width()
+                                   + borderWidth1);
+
+    // Fix mainWindows minimum width
+    this->setMinimumWidth(ui->tabWidget->minimumWidth()
+                          + ui->horizontalLayout->sizeHint().width()
+                          + borderWidth2);
+
+    // Resize the initial window size for high dpi screens
+    if (!settings.contains("windowSize"))
+    {
+        this->resize(this->width()*scale, this->height()*scale);
+        settings.setValue("windowSize", this->size());
+    }
+
+    /*printf("MainwindowSHW: %d\n", this->sizeHint().width());
+    printf("MainwindowSHH: %d\n", this->sizeHint().height());
+    printf("MainwindowW: %d\n", this->width());
+    printf("MainwindowH: %d\n", this->height());
+    printf("MainwindowMinW: %d\n", this->minimumWidth());
+    printf("MainwindowMinH: %d\n", this->minimumHeight());*/
+}
+
+
 /*
  * Name:	on_graphType_ComboBox_currentIndexChanged()
  * Purpose:	Set up the Create Graph widgets in a sensible state
@@ -2592,124 +2676,171 @@ MainWindow::on_tabWidget_currentChanged(int index)
 	  {
 	      // Q: when would item be a 0 or nullptr?
 	      if (item != 0 || item != nullptr)
-	      {
-		  if (item->type() == Graph::Type)
+	      {   // Only creates headers for "root" graphs
+		  if (item->type() == Graph::Type && item->parentItem() == nullptr
+			  && !item->childItems().isEmpty())
 		  {
 		      Graph * graph = qgraphicsitem_cast<Graph*>(item);
-		      QLabel * graphLabel = new QLabel("Graph");
-		      gridLayout->addWidget(graphLabel, i, 1);
+		      // TODO: Group labels into one "item" so we can delete in one swift move
+
+		      QLabel * label = new QLabel("Graph");
+		      gridLayout->addWidget(label, i, 1);
 		      i++;
 
-		      gridLayout->addWidget(new QLabel("N Diam"), i, 2);
-		      gridLayout->addWidget(new QLabel("E width"), i+1, 2);
-		      gridLayout->addWidget(new QLabel("Label"), i, 3);
-		      gridLayout->addWidget(new QLabel("Text"), i, 4);
-		      gridLayout->addWidget(new QLabel("Size"), i+1, 4);
-		      gridLayout->addWidget(new QLabel("Line"), i, 5);
-		      gridLayout->addWidget(new QLabel("Color"), i+1, 5);
-		      gridLayout->addWidget(new QLabel("Fill"), i, 6);
-		      gridLayout->addWidget(new QLabel("Color"), i+1, 6);
+		      QLabel * label2 = new QLabel("N Diam");
+		      gridLayout->addWidget(label2, i, 2);
+		      QLabel * label3 = new QLabel("E width");
+		      gridLayout->addWidget(label3, i+1, 2);
+		      QLabel * label4 = new QLabel("Label");
+		      gridLayout->addWidget(label4, i, 3);
+		      QLabel * label5 = new QLabel("Text");
+		      gridLayout->addWidget(label5, i, 4);
+		      QLabel * label6 = new QLabel("Size");
+		      gridLayout->addWidget(label6, i+1, 4);
+		      QLabel * label7 = new QLabel("Line");
+		      gridLayout->addWidget(label7, i, 5);
+		      QLabel * label8 = new QLabel("Color");
+		      gridLayout->addWidget(label8, i+1, 5);
+		      QLabel * label9 = new QLabel("Fill");
+		      gridLayout->addWidget(label9, i, 6);
+		      QLabel * label10 = new QLabel("Color");
+		      gridLayout->addWidget(label10, i+1, 6);
 		      i += 2;
 
+		      // Horrible, ugly connects....
+		      connect(graph, SIGNAL(destroyed(QObject*)),
+			      label, SLOT(deleteLater()));
+		      connect(graph, SIGNAL(destroyed(QObject*)),
+			      label2, SLOT(deleteLater()));
+		      connect(graph, SIGNAL(destroyed(QObject*)),
+			      label3, SLOT(deleteLater()));
+		      connect(graph, SIGNAL(destroyed(QObject*)),
+			      label4, SLOT(deleteLater()));
+		      connect(graph, SIGNAL(destroyed(QObject*)),
+			      label5, SLOT(deleteLater()));
+		      connect(graph, SIGNAL(destroyed(QObject*)),
+			      label6, SLOT(deleteLater()));
+		      connect(graph, SIGNAL(destroyed(QObject*)),
+			      label7, SLOT(deleteLater()));
+		      connect(graph, SIGNAL(destroyed(QObject*)),
+			      label8, SLOT(deleteLater()));
+		      connect(graph, SIGNAL(destroyed(QObject*)),
+			      label9, SLOT(deleteLater()));
+		      connect(graph, SIGNAL(destroyed(QObject*)),
+			      label10, SLOT(deleteLater()));
+
+		      QList<QGraphicsItem *> list;
 		      foreach (QGraphicsItem * gItem, graph->childItems())
+			  list.append(gItem);
+
+		      while (!list.isEmpty())
 		      {
-			  if (gItem != nullptr)
+			  foreach (QGraphicsItem * gItem, list)
 			  {
-			      if (gItem->type() == Node::Type)
+			      if (gItem != nullptr)
 			      {
-				  Node * node = qgraphicsitem_cast<Node*>(gItem);
-				  QLineEdit * nodeEdit = new QLineEdit();
-				  // Q: what was the point of this?
-				  // nodeEdit->setText("Node\n");
-				  // gridLayout->addWidget(nodeEdit);
+				  if (gItem->type() == Graph::Type)
+				      list.append(gItem->childItems());
 
-				  QLabel * label = new QLabel("Node");
-				  // When this node is deleted, also
-				  // delete its label in the edit tab.
-				  connect(node, SIGNAL(destroyed(QObject*)),
-					  label, SLOT(deleteLater()));
+				  else if (gItem->type() == Node::Type)
+				  {
+				      Node * node = qgraphicsitem_cast<Node*>(gItem);
+				      QLineEdit * nodeEdit = new QLineEdit();
+				      // Q: what was the point of this?
+				      // nodeEdit->setText("Node\n");
+				      // gridLayout->addWidget(nodeEdit);
 
-				  QDoubleSpinBox * sizeBox
-				      = new QDoubleSpinBox();
+				      QLabel * label = new QLabel("Node");
+				      // When this node is deleted, also
+				      // delete its label in the edit tab.
+				      connect(node, SIGNAL(destroyed(QObject*)),
+					      label, SLOT(deleteLater()));
 
-				  QPushButton * lineColorButton
-				      = new QPushButton();
-				  QPushButton * fillColorButton
-				      = new QPushButton();
+				      QDoubleSpinBox * sizeBox
+					  = new QDoubleSpinBox();
 
-				  QDoubleSpinBox * fontSizeBox
-				      = new QDoubleSpinBox();
+				      QPushButton * lineColorButton
+					  = new QPushButton();
+				      QPushButton * fillColorButton
+					  = new QPushButton();
 
-				  SizeController * sizeController
-				      = new SizeController(node, sizeBox);
-				  ColorLineController * colorLineController
-				      = new ColorLineController(node,
-								lineColorButton);
-				  LabelController * weightController
-				      = new LabelController(node, nodeEdit);
-				  LabelSizeController * weightSizeController
-				      = new LabelSizeController(node,
-								fontSizeBox);
-				  ColorFillController * colorFillController
-				      = new ColorFillController(node,
-								fillColorButton);
+				      QSpinBox * fontSizeBox
+					  = new QSpinBox();
 
-				  gridLayout->addWidget(label, i, 1);
-				  gridLayout->addWidget(sizeBox, i, 2);
-				  gridLayout->addWidget(nodeEdit,  i, 3);
-				  gridLayout->addWidget(fontSizeBox, i, 4);
-				  gridLayout->addWidget(lineColorButton, i, 5);
-				  gridLayout->addWidget(fillColorButton, i, 6);
-				  Q_UNUSED(sizeController);
-				  Q_UNUSED(colorLineController);
-				  Q_UNUSED(colorFillController);
-				  Q_UNUSED(weightController);
-				  Q_UNUSED(weightSizeController);
+				      // All controllers handle deleting of widgets
+				      SizeController * sizeController
+					  = new SizeController(node, sizeBox);
+				      ColorLineController * colorLineController
+					  = new ColorLineController(node,
+								    lineColorButton);
+				      LabelController * weightController
+					  = new LabelController(node, nodeEdit);
+				      LabelSizeController * weightSizeController
+					  = new LabelSizeController(node,
+								    fontSizeBox);
+				      ColorFillController * colorFillController
+					  = new ColorFillController(node,
+								    fillColorButton);
+
+				      gridLayout->addWidget(label, i, 1);
+				      gridLayout->addWidget(sizeBox, i, 2);
+				      gridLayout->addWidget(nodeEdit,  i, 3);
+				      gridLayout->addWidget(fontSizeBox, i, 4);
+				      gridLayout->addWidget(lineColorButton, i, 5);
+				      gridLayout->addWidget(fillColorButton, i, 6);
+				      Q_UNUSED(sizeController);
+				      Q_UNUSED(colorLineController);
+				      Q_UNUSED(colorFillController);
+				      Q_UNUSED(weightController);
+				      Q_UNUSED(weightSizeController);
+				      i++;
+				  }
+				  else if (gItem->type() == Edge::Type)
+				  {
+				      Edge * edge
+					  = qgraphicsitem_cast<Edge*>(gItem);
+				      QLineEdit * editEdge = new QLineEdit();
+				      // Q: what were these for??
+				      // editEdge->setText("Edge\n");
+				      // gridLayout->addWidget(editEdge);
+
+				      QLabel * label = new QLabel("Edge");
+				      // When this edge is deleted, also
+				      // delete its label in the edit tab.
+				      connect(edge, SIGNAL(destroyed(QObject*)),
+					      label, SLOT(deleteLater()));
+
+				      QPushButton * button = new QPushButton();
+				      QDoubleSpinBox * sizeBox
+					  = new QDoubleSpinBox();
+				      QSpinBox * fontSizeBox
+					  = new QSpinBox();
+
+				      // All controllers handle deleting of widgets
+				      SizeController * sizeController
+					  = new SizeController(edge, sizeBox);
+				      ColorLineController * colorController
+					  = new ColorLineController(edge, button);
+				      LabelController * weightController
+					  = new LabelController(edge, editEdge);
+				      LabelSizeController * weightSizeController
+					  = new LabelSizeController(edge,
+								    fontSizeBox);
+
+				      gridLayout->addWidget(label, i, 1);
+				      gridLayout->addWidget(sizeBox, i, 2);
+				      gridLayout->addWidget(editEdge, i, 3);
+				      gridLayout->addWidget(fontSizeBox, i, 4);
+				      gridLayout->addWidget(button, i, 5);
+				      Q_UNUSED(sizeController);
+				      Q_UNUSED(colorController);
+				      Q_UNUSED(weightController);
+				      Q_UNUSED(weightSizeController);
+				      i++;
+				  }
 			      }
-			      else if (gItem->type() == Edge::Type)
-			      {
-				  Edge * edge
-				      = qgraphicsitem_cast<Edge*>(gItem);
-				  QLineEdit * editEdge = new QLineEdit();
-				  // Q: what were these for??
-				  // editEdge->setText("Edge\n");
-				  // gridLayout->addWidget(editEdge);
-
-				  QLabel * label = new QLabel("Edge");
-				  // When this edge is deleted, also
-				  // delete its label in the edit tab.
-				  connect(edge, SIGNAL(destroyed(QObject*)),
-					  label, SLOT(deleteLater()));
-
-				  QPushButton * button = new QPushButton();
-				  QDoubleSpinBox * sizeBox
-				      = new QDoubleSpinBox();
-				  QDoubleSpinBox * fontSizeBox
-				      = new QDoubleSpinBox();
-
-				  SizeController * sizeController
-				      = new SizeController(edge, sizeBox);
-				  ColorLineController * colorController
-				      = new ColorLineController(edge, button);
-				  LabelController * weightController
-				      = new LabelController(edge, editEdge);
-				  LabelSizeController * weightSizeController
-				      = new LabelSizeController(edge,
-								fontSizeBox);
-
-				  gridLayout->addWidget(label, i, 1);
-				  gridLayout->addWidget(sizeBox, i, 2);
-				  gridLayout->addWidget(editEdge, i, 3);
-				  gridLayout->addWidget(fontSizeBox, i, 4);
-				  gridLayout->addWidget(button,	i, 5);
-
-				  Q_UNUSED(sizeController);
-				  Q_UNUSED(colorController);
-				  Q_UNUSED(weightController);
-				  Q_UNUSED(weightSizeController);
-			      }
+			      list.removeFirst();
 			  }
-			  i++;
 		      }
 		  }
 	      }
@@ -2800,4 +2931,62 @@ MainWindow::dumpGraphIc()
     qDeb() << "%%========= graphIc dump of current graph follows: ===========";
     QTextStream tty(stdout);
     saveGraphIc(tty, nodes, true);
+}
+
+
+void
+MainWindow::loadSettings()
+{
+    printf("Loading window size\n");
+    this->resize(settings.value("windowSize").toSize());
+
+    if (settings.value("windowMaxed") == true)
+        this->showMaximized();
+}
+
+
+void
+MainWindow::saveSettings()
+{
+    if (this->isMaximized())
+    {
+        printf("Saving window Maxed\n");
+        settings.setValue("windowMaxed", true);
+        //this->showNormal();
+        //settings.setValue("windowSize", this->size());
+    }
+    else
+    {
+        settings.setValue("windowMaxed", false);
+        printf("Saving window size\n");
+        settings.setValue("windowSize", this->size());
+    }
+}
+
+
+void
+MainWindow::closeEvent (QCloseEvent *event)
+{
+    if (!ui->canvas->scene()->itemsBoundingRect().isEmpty())
+    {
+        QMessageBox::StandardButton closeBtn = QMessageBox::question( this, "Graphic",
+                                                                    tr("Save graph before quitting?\n"),
+                                                                    QMessageBox::Cancel | QMessageBox::No | QMessageBox::Yes);
+        if (closeBtn == QMessageBox::Cancel)
+        {
+            event->ignore();
+        }
+        else
+        {
+            if (closeBtn == QMessageBox::Yes)
+                save_Graph();
+            saveSettings();
+            event->accept();
+        }
+    }
+    else
+    {
+        saveSettings();
+        event->accept();
+    }
 }

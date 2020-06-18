@@ -212,6 +212,8 @@ CanvasView::keyPressEvent(QKeyEvent * event)
 void
 CanvasView::setMode(int m)
 {
+    int lastModeType = modeType;
+
     qDeb() << "CV::setMode(" << m << ") called; "
 	   << "previous mode was " << modeType
 	   << " == " << getModeName(getMode());
@@ -220,6 +222,12 @@ CanvasView::setMode(int m)
     {
 	qDeb() << "\tSame mode as before, returning.";
 	return;
+    }
+
+    if (lastModeType == mode::freestyle) // Deletes empty freestyle graph
+    {
+        if (freestyleGraph->childItems().isEmpty())
+            delete freestyleGraph;
     }
 
     if (node1 != nullptr)
@@ -248,7 +256,7 @@ CanvasView::setMode(int m)
 
       case mode::freestyle:
 	emit setKeyStatusLabelText(FREESTYLE_DESCRIPTION);
-	freestyleGraph = new Graph();
+	freestyleGraph = new Graph(); // BAD BAD BAD
 	aScene->addItem(freestyleGraph);
 	freestyleGraph->isMoved();
 	node1 = nullptr;
@@ -421,8 +429,22 @@ CanvasView::addEdgeToScene(Node * source, Node * destination)
 	   << "source label is /" << source->getLabel()
 	   << "/ dest label is /" << destination->getLabel() << "/";
 
+    // Prevent edges being made if one already exists between source and dest
+    int exists = 0;
+    for (int i = 0; i < source->edgeList.count(); i++)
+        if ((source->edgeList.at(i)->sourceNode() == source
+             && source->edgeList.at(i)->destNode() == destination)
+             || (source->edgeList.at(i)->sourceNode() == destination
+             && source->edgeList.at(i)->destNode() == source))
+            exists = 1;
+
+    if (exists == 1)
+    {
+        return nullptr;
+    }
+
     Edge * edge = createEdge(source, destination);
-    if (node1->parentItem() == node2->parentItem())
+    if (node1->parentItem() == node2->parentItem()) // What if they share a root parent?!?!
     {
 	// Both nodes are from the same parent item
 	qDeb() << "\taETS: both nodes have the same parentItem";
@@ -448,6 +470,16 @@ CanvasView::addEdgeToScene(Node * source, Node * destination)
         parent1 = qgraphicsitem_cast<Graph*>(node1->parentItem());
         parent2 = qgraphicsitem_cast<Graph*>(node2->parentItem());
 
+        // Makes parent1 the parent of parent2's children
+        /*for (int i = 0; i < parent2->childItems().count(); i++)
+        {
+            parent2->childItems().at(i)->setParentItem(parent1);
+        }
+
+        edge->setZValue(0);
+        edge->setParentItem(parent1);
+        edge->adjust();*/
+
         while (parent1->parentItem() != nullptr)
             parent1 = qgraphicsitem_cast<Graph*>(parent1->parentItem());
 
@@ -460,7 +492,7 @@ CanvasView::addEdgeToScene(Node * source, Node * destination)
             edge->setParentItem(root);
             parent1->setParentItem(root);
             parent2->setParentItem(root);
-            root->setHandlesChildEvents(false);
+            root->setHandlesChildEvents(false); // Obsolete
             aScene->addItem(root);
 	    // The following line causes Qt to whine
 	    // "QGraphicsScene::addItem: item has already been added

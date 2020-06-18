@@ -35,6 +35,9 @@
  *	what the function does.
  * May 25, 2020 (IC V1.10)
  *  (a) Removed setKeyStatusLabel() in favour of tooltips for each mode.
+ * June 6, 2020 (IC V1.11)
+ *  (a) Added set_Interface_Sizes() to fix sizing issues on monitors with
+ *      different DPIs.
  */
 
 
@@ -61,7 +64,10 @@ class MainWindow : public QMainWindow
   public:
     explicit MainWindow(QWidget * parent = 0);
     ~MainWindow();
-    void setKeyStatusLabel(QString text);
+    void set_Interface_Sizes();
+
+  protected:
+    virtual void closeEvent (QCloseEvent *event);
 
   private slots:
     bool save_Graph();
@@ -75,6 +81,7 @@ class MainWindow : public QMainWindow
     void dumpTikZ();
 
     void set_Font_Sizes();
+
     void on_NodeOutlineColor_clicked();
     void on_NodeFillColor_clicked();
     void on_EdgeLineColor_clicked();
@@ -99,7 +106,10 @@ class MainWindow : public QMainWindow
 
     void on_tabWidget_currentChanged(int index);
 
-  private:
+private:
+    void loadSettings();
+    void saveSettings();
+
     Ui::MainWindow * ui;
     QDir dir;
     QString fileDirectory;

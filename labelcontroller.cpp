@@ -64,7 +64,7 @@ LabelController::setEdgeLabel(QString string)
 void
 LabelController::setNodeLabel(QString string)
 {
-    if (edge != nullptr || edge != 0)
+    if (node != nullptr || node != 0)
         node->setNodeLabel(string);
 }
 

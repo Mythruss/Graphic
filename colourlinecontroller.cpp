@@ -3,8 +3,6 @@
 #include <QColorDialog>
 #include <QtCore>
 
-#define BUTTON_STYLE "border-style: outset; border-width: 2px; border-radius: 5px; border-color: beige; padding: 3px;"
-
 ColorLineController::ColorLineController(Edge * anEdge, QPushButton * aButton)
 {
     edge = anEdge;

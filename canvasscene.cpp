@@ -243,23 +243,27 @@ CanvasScene::mousePressEvent(QGraphicsSceneMouseEvent * event)
 
 			Graph * parent =
 			    qgraphicsitem_cast<Graph*>(node->parentItem());
-
-			if (parent != nullptr || parent != 0)
-			{
-			    if (parent->childItems().length() == 0)
-			    {
-				parent->setParentItem(nullptr);
-				removeItem(parent);
-				delete parent;
-				parent = nullptr;
-			    }
-			}
+			Graph * tempParent;
 
 			// Delete the node.
 			node->setParentItem(nullptr);
 			removeItem(node);
 			delete node;
 			node = nullptr;
+
+			// Now delete Graph (and root graphs) if there are no nodes left
+			while (parent != nullptr || parent != 0)
+			{
+			    tempParent = qgraphicsitem_cast<Graph*>(parent->parentItem());
+			    if (parent->childItems().isEmpty())
+			    {
+				parent->setParentItem(nullptr);
+				removeItem(parent);
+				delete parent;
+				parent = nullptr;
+			    }
+			    parent = tempParent;
+			}
 			break;
 		    }
 		    else if (item->type() == Edge::Type)
@@ -753,7 +757,7 @@ CanvasScene::keyReleaseEvent(QKeyEvent * event)
 	break;
 
       case Qt::Key_Escape:
-	if (undoPositions.length() > 0)
+        if (undoPositions.length() > 0)
 	{
 	    undoPositions.last()->node->setPos(undoPositions.last()->pos);
 	    undoPositions.removeLast();

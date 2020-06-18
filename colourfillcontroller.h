@@ -1,6 +1,7 @@
 #ifndef COLORFILLCONTROLLER_H
 #define COLORFILLCONTROLLER_H
 #include "node.h"
+#include "defuns.h"
 
 #include <QPushButton>
 #include <QObject>

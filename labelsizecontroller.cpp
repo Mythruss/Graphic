@@ -45,18 +45,18 @@
  *		decimal places, and also start at 1 and go up from there.
  */
 
-LabelSizeController::LabelSizeController(Edge * anEdge, QDoubleSpinBox * aBox)
+LabelSizeController::LabelSizeController(Edge * anEdge, QSpinBox * aBox)
 {
     edge = anEdge;
     box = aBox;
     if (box != nullptr)
     {
 	box->setMinimum(1);
-	box->setDecimals(0);
+	//box->setDecimals(0);
 	box->setValue(edge->getLabelSize());
 
-        connect(box, SIGNAL(valueChanged(double)),
-                this, SLOT(setEdgeLabelSize(double)));
+        connect(box, SIGNAL(valueChanged(int)),
+                this, SLOT(setEdgeLabelSize(int)));
         connect(anEdge, SIGNAL(destroyed(QObject*)),
                 this, SLOT(deletedSpinBox()));
         connect(anEdge, SIGNAL(destroyed(QObject*)),
@@ -66,18 +66,18 @@ LabelSizeController::LabelSizeController(Edge * anEdge, QDoubleSpinBox * aBox)
 
 
 
-LabelSizeController::LabelSizeController(Node * aNode, QDoubleSpinBox * aBox)
+LabelSizeController::LabelSizeController(Node * aNode, QSpinBox * aBox)
 {
     node = aNode;
     box = aBox;
     if (box != nullptr)
     {
 	box->setMinimum(1);
-	box->setDecimals(0);
+	//box->setDecimals(0);
 	box->setValue(node->getLabelSize());
 
-        connect(box, SIGNAL(valueChanged(double)),
-                this, SLOT(setNodeLabelSize(double)));
+        connect(box, SIGNAL(valueChanged(int)),
+                this, SLOT(setNodeLabelSize(int)));
         connect(aNode, SIGNAL(destroyed(QObject*)),
                 this, SLOT(deletedSpinBox()));
         connect(aNode, SIGNAL(destroyed(QObject*)),
@@ -99,7 +99,7 @@ LabelSizeController::LabelSizeController(Node * aNode, QDoubleSpinBox * aBox)
  * Notes:	Can node possibly be null?
  */
 
-void LabelSizeController::setNodeLabelSize(double ptSize)
+void LabelSizeController::setNodeLabelSize(int ptSize)
 {
     if (node != nullptr)
         node->setNodeLabelSize(ptSize);
@@ -127,7 +127,7 @@ void LabelSizeController::deletedSpinBox()
  */
 
 void
-LabelSizeController::setEdgeLabelSize(double ptSize)
+LabelSizeController::setEdgeLabelSize(int ptSize)
 {
     if (edge != nullptr)
         edge->setLabelSize(ptSize);

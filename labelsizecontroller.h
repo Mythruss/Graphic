@@ -18,25 +18,25 @@
 #include "edge.h"
 #include "node.h"
 
-#include <QDoubleSpinBox>
+#include <QSpinBox>
 #include <QObject>
 
 class LabelSizeController : public QObject
 {
     Q_OBJECT
 public:
-    LabelSizeController(Edge * anEdge, QDoubleSpinBox * aBox);
-    LabelSizeController(Node * aNode, QDoubleSpinBox * aBox);
+    LabelSizeController(Edge * anEdge, QSpinBox * aBox);
+    LabelSizeController(Node * aNode, QSpinBox * aBox);
 
 private slots:
-    void setEdgeLabelSize(double value);
-    void setNodeLabelSize(double value);
+    void setEdgeLabelSize(int value);
+    void setNodeLabelSize(int value);
     void deletedSpinBox();
 
 private:
     Edge * edge;
     Node * node;
-    QDoubleSpinBox * box;
+    QSpinBox * box;
 
 };
 

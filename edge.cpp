@@ -108,7 +108,7 @@ Edge::Edge(Node * sourceNode, Node * destNode)
     label = "";
     destRadius = destNode->getDiameter() / 2.;
     sourceRadius = destNode->getDiameter() / 2.;
-    setHandlesChildEvents(true);
+    setHandlesChildEvents(true); // Obsolete
     htmlLabel = new HTML_Label(this);
     htmlLabel->setPos((edgeLine.p2().rx() + edgeLine.p1().rx()) / 2.
 		      - htmlLabel->boundingRect().width() / 2.,

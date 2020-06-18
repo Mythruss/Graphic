@@ -1,8 +1,6 @@
 #include "colourfillcontroller.h"
 #include <QColorDialog>
 
-#define BUTTON_STYLE "border-style: outset; border-width: 2px; border-radius: 5px; border-color: beige; padding: 3px;"
-
 ColorFillController::ColorFillController(Node *aNode, QPushButton *aButton)
 {
         node = aNode;

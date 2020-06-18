@@ -23,7 +23,7 @@ class CanvasView;
 class Node;
 class Edge;
 
-class Graph : public QGraphicsItem
+class Graph : public QGraphicsObject
 {
 public:
     typedef struct graph

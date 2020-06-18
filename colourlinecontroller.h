@@ -2,6 +2,7 @@
 #define EDGECOLORCONTROLLER_H
 #include "edge.h"
 #include "node.h"
+#include "defuns.h"
 
 #include <QPushButton>
 #include <QObject>

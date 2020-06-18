@@ -55,7 +55,7 @@ Graph::Graph()
 void Graph::isMoved()
 {
     moved = 1;
-    setHandlesChildEvents(false);
+    setHandlesChildEvents(false); // Obsolete
 }
 
 /*
