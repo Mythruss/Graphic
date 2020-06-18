@@ -2,7 +2,7 @@
  * File:	mainwindow.cpp
  * Author:	Rachel Bood
  * Date:	January 25, 2015.
- * Version:	1.29
+ * Version:	1.33
  *
  * Purpose:	Implement the main window and functions called from there.
  *
@@ -225,6 +225,10 @@
  *      save graph if any exists on the canvas.
  *  (c) Added code to saveGraph() that supports saving default background
  *      colour of saved images. WIP
+ * June 17, 2020 (IC V1.33)
+ *  (a) Updated on_tabWidget_currentChanged() to display merged graphs under a
+ *      single set of headers as well as delete those headers if the graph is
+ *      deleted.
  */
 
 #include "mainwindow.h"
@@ -355,7 +359,7 @@ QMainWindow(parent),
 	    (void(QLineEdit::*)(const QString &))&QLineEdit::textChanged,
 	    this, [this]() { generate_Graph(nodeLabel2_WGT); });
     connect(ui->NodeLabelSize,
-            (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
+	    (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
 	    this, [this]() { generate_Graph(nodeLabelSize_WGT); });
     connect(ui->NumLabelCheckBox,
 	    (void(QCheckBox::*)(bool))&QCheckBox::clicked,
@@ -379,7 +383,7 @@ QMainWindow(parent),
 	    (void(QLineEdit::*)(const QString &))&QLineEdit::textChanged,
 	    this, [this]() { generate_Graph(edgeLabel_WGT); });
     connect(ui->EdgeLabelSize,
-            (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
+	    (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
 	    this, [this]() { generate_Graph(edgeLabelSize_WGT); });
     connect(ui->EdgeLineColor,
 	    (void(QPushButton::*)(bool))&QPushButton::clicked,
@@ -400,8 +404,8 @@ QMainWindow(parent),
 	    (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
 	    this, [this]() { generate_Graph(graphWidth_WGT); });
     connect(ui->numOfNodes1,
-            (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
-            this, [this]() { generate_Graph(numOfNodes1_WGT); });
+	    (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
+	    this, [this]() { generate_Graph(numOfNodes1_WGT); });
     connect(ui->numOfNodes2,
 	    (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
 	    this, [this]() { generate_Graph(numOfNodes2_WGT); });
@@ -2937,7 +2941,7 @@ MainWindow::dumpGraphIc()
 void
 MainWindow::loadSettings()
 {
-    printf("Loading window size\n");
+    //printf("Loading window size\n");
     this->resize(settings.value("windowSize").toSize());
 
     if (settings.value("windowMaxed") == true)
@@ -2950,7 +2954,7 @@ MainWindow::saveSettings()
 {
     if (this->isMaximized())
     {
-        printf("Saving window Maxed\n");
+        //printf("Saving window Maxed\n");
         settings.setValue("windowMaxed", true);
         //this->showNormal();
         //settings.setValue("windowSize", this->size());
@@ -2958,7 +2962,7 @@ MainWindow::saveSettings()
     else
     {
         settings.setValue("windowMaxed", false);
-        printf("Saving window size\n");
+        //printf("Saving window size\n");
         settings.setValue("windowSize", this->size());
     }
 }

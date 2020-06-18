@@ -13,7 +13,7 @@
  * May 19, 2020 (IC V1.2)
  *  (a) Added another font to be embeded.
  * June 6, 2020 (IC V1.3)
- *  (a) Call set_Interfacce_Sizes() after show() to get accurate sizehints
+ *  (a) Call set_Interface_Sizes() after show() to get accurate sizehints
  *      when resizing the window.
  */
 
@@ -33,7 +33,6 @@ main(int argc, char * argv[])
     QFontDatabase::addApplicationFont(":/fonts/arimo.ttf");
 
     MainWindow w;
-
     w.show();
     w.set_Interface_Sizes();
 

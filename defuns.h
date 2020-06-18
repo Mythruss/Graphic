@@ -2,7 +2,7 @@
  * File:	defuns.h
  * Author:	Jim Diamond
  * Date:	2019-12-10
- * Version:	1.0
+ * Version:	1.2
  *
  * Purpose:	Hold definitions that are needed by multiple classes
  *		and yet don't seem to meaningfully fit anywhere else.
@@ -17,9 +17,9 @@
  *	be applied, rather than just one corresponding to a particular
  *	widget that changed; used when loading a "basic" graph.
  *	"NO_WGT" indicates that no styles should be applied; used when
- * May 25, 2020 (IC)
+ * May 25, 2020 (IC V1.1)
  *  (a) Added numLabelStart_WGT
- * June 9, 2020 (IC)
+ * June 9, 2020 (IC V1.2)
  *  (a) Moved BUTTON_STYLE here so it is not repeated across 3 files
  */
 

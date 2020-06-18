@@ -2,7 +2,7 @@
  * File:	mainwindow.h
  * Author:	Rachel Bood
  * Date:	January 25, 2015.
- * Version:	1.10
+ * Version:	1.12
  *
  * Purpose:	Define the MainWindow class.
  *
@@ -38,6 +38,8 @@
  * June 6, 2020 (IC V1.11)
  *  (a) Added set_Interface_Sizes() to fix sizing issues on monitors with
  *      different DPIs.
+ * June 10, 2020 (IC V1.12)
+ *  (a) Added loadSettings(), saveSettings(), and reimplemented closeEvent().
  */
 
 
@@ -81,7 +83,6 @@ class MainWindow : public QMainWindow
     void dumpTikZ();
 
     void set_Font_Sizes();
-
     void on_NodeOutlineColor_clicked();
     void on_NodeFillColor_clicked();
     void on_EdgeLineColor_clicked();

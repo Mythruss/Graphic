@@ -2,7 +2,7 @@
  * File:    canvasview.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.13
+ * Version: 1.15
  *
  * Purpose: Initializes a QGraphicsView that is used to house the
  *	    QGraphicsScene.
@@ -47,6 +47,12 @@
  *  (a) Added defuns.h, removed debug #defines.
  * Dec 17, 2019 (JD V1.13)
  *  (a) Add usage of Esc to edit mode help.
+ * June 12, 2020 (IC V1.14)
+ *  (a) Added measures to addEdgeToScene() to prevent edges being made between
+ *      nodes that already have an edge.
+ * June 17, 2020 (IC V1.15)
+ *  (a) Updated setMode() to delete freestyle graph after a mode change if
+ *      the freestyle graph is empty.
  */
 
 #include "canvasview.h"
@@ -470,7 +476,7 @@ CanvasView::addEdgeToScene(Node * source, Node * destination)
         parent1 = qgraphicsitem_cast<Graph*>(node1->parentItem());
         parent2 = qgraphicsitem_cast<Graph*>(node2->parentItem());
 
-        // Makes parent1 the parent of parent2's children
+        // Makes parent1 the parent of parent2's children. WIP
         /*for (int i = 0; i < parent2->childItems().count(); i++)
         {
             parent2->childItems().at(i)->setParentItem(parent1);
@@ -492,7 +498,7 @@ CanvasView::addEdgeToScene(Node * source, Node * destination)
             edge->setParentItem(root);
             parent1->setParentItem(root);
             parent2->setParentItem(root);
-            root->setHandlesChildEvents(false); // Obsolete
+            root->setHandlesChildEvents(false);
             aScene->addItem(root);
 	    // The following line causes Qt to whine
 	    // "QGraphicsScene::addItem: item has already been added

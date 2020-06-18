@@ -2,13 +2,16 @@
  * File:    labelcontroller.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07 (?)
- * Version: 1.1
+ * Version: 1.2
  *
  * Purpose: ?
  *
  * Modification history:
  * Nov 13, 2019 (JD, V1.1)
  *  - rename "Weight" to "Label" for edge function names.
+ * June 17, 2020 (IC V1.2)
+ *  - Changed setNodeLabel() to properly check if node is null or 0 instead
+ *    of edge.
  */
 
 

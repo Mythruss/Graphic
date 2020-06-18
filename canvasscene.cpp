@@ -2,7 +2,7 @@
  * File:    canvasscene.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.7
+ * Version: 1.8
  *
  * Purpose: Initializes a QGraphicsScene to implement a drag and drop feature.
  *          still very much a WIP
@@ -37,6 +37,9 @@
  *  (c) Added a debug stmt.
  * Mar 30, 2020 (JD V1.7)
  *  (a) Remove deprecated usage of setSortCacheEnabled() in CanvasScene().
+ * June 17, 2020 (IC V1.8)
+ *  (a) Corrected mousePressEvent to properly delete the graph (and parent
+ *      graphs) if the last child node is deleted.
  */
 
 #include "canvasscene.h"
