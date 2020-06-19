@@ -61,7 +61,7 @@ HTML_Label::HTML_Label(QGraphicsItem * parent)
     qDeb() << "HTML_Label constructor called";
 
     this->setParentItem(parent);
-    htmlLabelText = "";
+    htmlLabelText = ""; // Never updated?
     setZValue(3);
     QFont font;
 

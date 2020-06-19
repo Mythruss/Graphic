@@ -2,7 +2,7 @@
  * File:	mainwindow.h
  * Author:	Rachel Bood
  * Date:	January 25, 2015.
- * Version:	1.12
+ * Version:	1.13
  *
  * Purpose:	Define the MainWindow class.
  *
@@ -40,6 +40,9 @@
  *      different DPIs.
  * June 10, 2020 (IC V1.12)
  *  (a) Added loadSettings(), saveSettings(), and reimplemented closeEvent().
+ * June 19, 2020 (IC V1.13)
+ *  (a) Added multiple slots for updating edit tab when graphs/nodes/edges are
+ *      created.
  */
 
 
@@ -105,7 +108,13 @@ class MainWindow : public QMainWindow
 
     void on_freestyleMode_radioButton_clicked();
 
-    void on_tabWidget_currentChanged(int index);
+    void on_tabWidget_currentChanged(int index); // I want this to die horribly
+
+    void updateEditTab(); // Easy fix but not ideal
+
+    void addGraphToEditTab(); // These three are what we want instead
+    void addNodeToEditTab();
+    void addEdgeToEditTab();
 
 private:
     void loadSettings();

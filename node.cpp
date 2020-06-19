@@ -2,7 +2,7 @@
  * File:    node.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.9
+ * Version: 1.10
  *
  * Purpose: creates a node for the users graph
  *
@@ -60,6 +60,9 @@
  *	to correct scaling issues. (Only reliable with Qt V5.14.2 or higher)
  *  (b) Removed unused physicalDotsPerInchY variable as only one DPI
  *	value is needed for the node's radius.
+ * June 18, 2020 (IC V1.10)
+ *  (a) Add setNodeLabel() and appropriate connect in the contructor to
+ *      update label when changes are made on the canvas in edit mode.
  */
 
 #include "defuns.h"
@@ -108,6 +111,9 @@ Node::Node()
     select = false;		    // TODO: is 'select' of any use?
     QScreen * screen = QGuiApplication::primaryScreen();
     physicalDotsPerInchX = screen->physicalDotsPerInchX();
+
+    connect(htmlLabel->document(), SIGNAL(contentsChanged()),
+            this, SLOT(setNodeLabel()));
 }
 
 /*
@@ -415,7 +421,7 @@ Node::edges() const
 
 
 /*
- * Name:        setNodeLabel()
+ * Name:        setNodeLabel(int)
  * Purpose:     Sets the label of the node to an integer.
  * Arguments:   An int, the node label.
  * Output:      Nothing.
@@ -500,6 +506,25 @@ Node::setNodeLabel(QString aLabel)
     labelToHtml();
 }
 
+
+/*
+ * Name:        setNodeLabel()
+ * Purpose:     Specifically used to update the label when changes are made
+ *              to the htmllabel on the canvas in edit mode.
+ * Argument:    QString
+ * Output:      Nothing.
+ * Modifies:    The node's label.
+ * Returns:     Nothing.
+ * Assumptions: None.
+ * Bugs:        None.
+ * Notes:       Not sure if anything should be done to htmlLabel.
+ */
+
+void
+Node::setNodeLabel()
+{
+    label = htmlLabel->document()->toPlainText().toLatin1().data();
+}
 
 
 /*
@@ -732,11 +757,11 @@ Node::editLabel(bool edit)
  * Notes:       none
  */
 
-void
+/*void
 Node::nodeDeleted()
 {
 
-}
+}*/
 
 
 

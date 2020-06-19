@@ -2,7 +2,7 @@
  * File:    canvasscene.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.8
+ * Version: 1.9
  *
  * Purpose: Initializes a QGraphicsScene to implement a drag and drop feature.
  *          still very much a WIP
@@ -40,6 +40,8 @@
  * June 17, 2020 (IC V1.8)
  *  (a) Corrected mousePressEvent to properly delete the graph (and parent
  *      graphs) if the last child node is deleted.
+ * June 19, 2020 (IC V1.9)
+ *  (a) Added graphDropped() signal to tell mainWindow to update the edit tab.
  */
 
 #include "canvasscene.h"
@@ -115,9 +117,9 @@ CanvasScene::dropEvent(QGraphicsSceneDragDropEvent * event)
         addItem(graphItem);
         graphItem->isMoved();
         clearSelection();
+        emit graphDropped();
     }
 }
-
 
 
 void

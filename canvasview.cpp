@@ -2,7 +2,7 @@
  * File:    canvasview.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.15
+ * Version: 1.16
  *
  * Purpose: Initializes a QGraphicsView that is used to house the
  *	    QGraphicsScene.
@@ -53,6 +53,9 @@
  * June 17, 2020 (IC V1.15)
  *  (a) Updated setMode() to delete freestyle graph after a mode change if
  *      the freestyle graph is empty.
+ * June 19, 2020 (IC V1.16)
+ *  (a) Added nodeCreated() and edgeCreated() signals to tell mainWindow to
+ *      update the edit tab.
  */
 
 #include "canvasview.h"
@@ -305,6 +308,7 @@ CanvasView::mouseDoubleClickEvent(QMouseEvent * event)
 	pt = mapToScene(event->pos());
 	qDeb() << "\tfreestyle mode: create a new node at " << pt;
 	createNode(pt);
+	emit nodeCreated();
 	if (node1 != nullptr)
 	    node1->chosen(0);
 	node1 = nullptr;
@@ -364,6 +368,7 @@ CanvasView::mousePressEvent(QMouseEvent * event)
 		{
 		    qDeb() << "\t\tcalling addEdgeToScene(n1, n2) !";
 		    addEdgeToScene(node1, node2);
+		    emit edgeCreated();
 		    // qDeb() << "node1->pos() is " << node1->pos();
 		    // qDeb() << "node1->scenePos() is " << node1->scenePos();
 		    // TODO: without this horrible hack, edges

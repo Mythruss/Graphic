@@ -2,7 +2,7 @@
  * File:	mainwindow.cpp
  * Author:	Rachel Bood
  * Date:	January 25, 2015.
- * Version:	1.33
+ * Version:	1.34
  *
  * Purpose:	Implement the main window and functions called from there.
  *
@@ -229,6 +229,9 @@
  *  (a) Updated on_tabWidget_currentChanged() to display merged graphs under a
  *      single set of headers as well as delete those headers if the graph is
  *      deleted.
+ * June 19, 2020 (IC V1.34)
+ *  (a) Added multiple slots and appropriate connections for updating edit tab
+ *      when graphs/nodes/edges are created.
  */
 
 #include "mainwindow.h"
@@ -447,6 +450,14 @@ QMainWindow(parent),
 
     connect(ui->canvas, SIGNAL(resetDragMode()),
 	    ui->dragMode_radioButton, SLOT(click()));
+
+    // Few more connections!!
+    connect(ui->canvas->scene(), SIGNAL(graphDropped()),
+            this, SLOT(updateEditTab())); // Kind of useless (for now)
+    connect(ui->canvas, SIGNAL(nodeCreated()),
+            this, SLOT(updateEditTab()));
+    connect(ui->canvas, SIGNAL(edgeCreated()),
+            this, SLOT(updateEditTab()));
 
     // Initialize the canvas to be in "drag" mode.
     ui->dragMode_radioButton->click();
@@ -2663,7 +2674,7 @@ MainWindow::on_tabWidget_currentChanged(int index)
     {
       case 0:
       {
-	  QLayoutItem * wItem;
+          QLayoutItem * wItem;
 	  while ((wItem = ui->scrollAreaWidgetContents->layout()->takeAt(0))
 		 != 0)
 	  {
@@ -2685,7 +2696,6 @@ MainWindow::on_tabWidget_currentChanged(int index)
 			  && !item->childItems().isEmpty())
 		  {
 		      Graph * graph = qgraphicsitem_cast<Graph*>(item);
-		      // TODO: Group labels into one "item" so we can delete in one swift move
 
 		      QLabel * label = new QLabel("Graph");
 		      gridLayout->addWidget(label, i, 1);
@@ -2890,7 +2900,30 @@ MainWindow::on_tabWidget_currentChanged(int index)
     }
 }
 
+void
+MainWindow::updateEditTab() // Quick, ugly, dirty fix
+{
+    on_tabWidget_currentChanged(0);
+    on_tabWidget_currentChanged(1);
+}
 
+// We will use these bad boys after I tear on_tabWidget_currentChanged() apart
+void
+MainWindow::addGraphToEditTab()
+{
+
+}
+
+void
+MainWindow::addNodeToEditTab()
+{
+
+}
+void
+MainWindow::addEdgeToEditTab()
+{
+
+}
 
 void
 MainWindow::dumpTikZ()
@@ -2973,9 +3006,9 @@ MainWindow::closeEvent (QCloseEvent *event)
 {
     if (!ui->canvas->scene()->itemsBoundingRect().isEmpty())
     {
-        QMessageBox::StandardButton closeBtn = QMessageBox::question( this, "Graphic",
-                                                                    tr("Save graph before quitting?\n"),
-                                                                    QMessageBox::Cancel | QMessageBox::No | QMessageBox::Yes);
+        QMessageBox::StandardButton closeBtn = QMessageBox::question(this, "Graphic",
+                                                                     tr("Save graph before quitting?\n"),
+                                                                     QMessageBox::Cancel | QMessageBox::No | QMessageBox::Yes);
         if (closeBtn == QMessageBox::Cancel)
         {
             event->ignore();

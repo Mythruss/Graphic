@@ -2,7 +2,7 @@
  * File:    edge.h
  * Author:  Rachel Bood
  * Date:    2014/11/07 (?)
- * Version: 1.5
+ * Version: 1.6
  *
  * Purpose: creates an edge for the users graph
  * Modification history:
@@ -29,6 +29,10 @@
  *  (a) Include defuns.h.
  * Dec 15, 2019 (JD V1.5):
  *  (a) Remove (globally) unused "penWidth" private variable.
+ * June 18, 2020 (IC V1.6)
+ *  (a) Add setEdgeLabel() slot to update label when changes are made on the
+ *      canvas in edit mode.
+ *  (b) Changed htmlLabel to public for use in labelcontroller.cpp
  */
 
 #ifndef EDGE_H
@@ -41,6 +45,7 @@
 #include <QList>
 #include <QGraphicsSimpleTextItem>
 #include <QGraphicsSceneMouseEvent>
+#include <QTextDocument>
 
 class Node;
 class CanvasView;
@@ -48,6 +53,8 @@ class PreView;
 
 class Edge: public QGraphicsObject
 {
+    Q_OBJECT
+
 public:
     Edge(Node * sourceNode, Node * destNode);
 
@@ -89,12 +96,18 @@ public:
     QGraphicsItem * getRootParent();
 
      //~Edge(); deconstructor a WIP
+
+    HTML_Label * htmlLabel;
+
+public slots:
+    void setEdgeLabel();
+
 protected:
     void paint(QPainter * painter, const QStyleOptionGraphicsItem * option,
                QWidget * widget);
 
 signals:
-    void edgeDeleted();
+    //void edgeDeleted();
 
 private:
     void	createSelectionPolygon();
@@ -106,7 +119,6 @@ private:
     QString	label;
     qreal	labelSize, penSize;
     QColor	edgeColour;
-    HTML_Label	* htmlLabel;
 };
 
 #endif // EDGE_H
