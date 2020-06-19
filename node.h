@@ -29,7 +29,7 @@
  *  (b) Removed unused physicalDotsPerInchY variable as only one DPI
  *	value is needed for the node's radius.
  * June 18, 2020 (IC V1.7)
- *  (a) Add setNodeLabel() slot to update label when changes are made on the
+ *  (a) Added setNodeLabel() slot to update label when changes are made on the
  *      canvas in edit mode.
  *  (b) Changed htmlLabel to public for use in labelcontroller.cpp
  */
@@ -113,7 +113,7 @@ class Node : public QGraphicsObject
 	       QWidget * widget);
 
   signals:
-    //void nodeDeleted(); // Was giving compile errors due to Q_OBJECT
+    //void nodeDeleted(); // Should be removed? Never used.
 
   private:
     QPointF	newPos;

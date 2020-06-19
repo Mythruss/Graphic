@@ -2674,7 +2674,7 @@ MainWindow::on_tabWidget_currentChanged(int index)
     {
       case 0:
       {
-          QLayoutItem * wItem;
+	  QLayoutItem * wItem;
 	  while ((wItem = ui->scrollAreaWidgetContents->layout()->takeAt(0))
 		 != 0)
 	  {

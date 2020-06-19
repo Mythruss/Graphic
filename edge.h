@@ -30,7 +30,7 @@
  * Dec 15, 2019 (JD V1.5):
  *  (a) Remove (globally) unused "penWidth" private variable.
  * June 18, 2020 (IC V1.6)
- *  (a) Add setEdgeLabel() slot to update label when changes are made on the
+ *  (a) Added setEdgeLabel() slot to update label when changes are made on the
  *      canvas in edit mode.
  *  (b) Changed htmlLabel to public for use in labelcontroller.cpp
  */
@@ -107,7 +107,7 @@ protected:
                QWidget * widget);
 
 signals:
-    //void edgeDeleted();
+    //void edgeDeleted(); // Should be removed? Never used.
 
 private:
     void	createSelectionPolygon();

@@ -57,7 +57,7 @@
  *  (a) The debug defns have now moved to defuns.h, which is now
  *	included by edge.h.
  * June 18, 2020 (IC V1.9)
- *  (a) Add setEdgeLabel() and appropriate connect in the contructor to
+ *  (a) Added setEdgeLabel() and appropriate connect in the contructor to
  *      update label when changes are made on the canvas in edit mode.
  */
 
@@ -282,6 +282,8 @@ Edge::setLabel(QString aLabel)
  * Assumptions: None.
  * Bugs:        None.
  * Notes:       Not sure if anything should be done to htmlLabel.
+ *              Edge.cpp and Node.cpp are very inconsistent in how they handle
+ *              labels.
  */
 
 void

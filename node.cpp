@@ -61,7 +61,7 @@
  *  (b) Removed unused physicalDotsPerInchY variable as only one DPI
  *	value is needed for the node's radius.
  * June 18, 2020 (IC V1.10)
- *  (a) Add setNodeLabel() and appropriate connect in the contructor to
+ *  (a) Added setNodeLabel() and appropriate connect in the contructor to
  *      update label when changes are made on the canvas in edit mode.
  */
 
@@ -518,6 +518,8 @@ Node::setNodeLabel(QString aLabel)
  * Assumptions: None.
  * Bugs:        None.
  * Notes:       Not sure if anything should be done to htmlLabel.
+ *              Edge.cpp and Node.cpp are very inconsistent in how they handle
+ *              labels.
  */
 
 void

@@ -2,7 +2,7 @@
  * File:    labelcontroller.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07 (?)
- * Version: 1.3
+ * Version: 1.4
  *
  * Purpose: ?
  *
@@ -13,9 +13,11 @@
  *  - Changed setNodeLabel() to properly check if node is null or 0 instead
  *    of edge.
  * June 18, 2020 (IC, V1.3)
- *  - Add setEdgeLabel2() and setNodeLabel2() for updating the edit tab labels
- *    when labels are changed via edit mode on the canvas.
- *  - Add extra connect statements to handle those edit events.
+ *  - Added setEdgeLabel2() and setNodeLabel2() for updating the edit tab
+ *    labels when labels are changed via edit mode on the canvas.
+ *  - Added extra connect statements to handle those edit events.
+ * June 19, 2020 (IC, V1.4)
+ *  - Updated setters to check for appropriate focusEvents.
  */
 
 

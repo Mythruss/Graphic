@@ -12,8 +12,8 @@
  *  Nov 13, 2019 (JD, V1.2)
  *   - Fix incorrect #ifndef string.
  *  June 18, 2020 (IC, V1.3)
- *   - Add setEdgeLabel2() and setNodeLabel2() for updating the edit tab labels
- *     when labels are changed via edit mode on the canvas.
+ *   - Added setEdgeLabel2() and setNodeLabel2() for updating the edit tab
+ *     line edits when labels are changed via edit mode on the canvas.
  */
 
 
