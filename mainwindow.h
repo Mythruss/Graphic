@@ -56,6 +56,7 @@
 #include <QScrollArea>
 
 #include "defuns.h"
+#include "graph.h"
 
 namespace Ui
 {
@@ -79,6 +80,7 @@ class MainWindow : public QMainWindow
     bool load_Graphic_File();
     void load_Graphic_Library();
     void select_Custom_Graph(QString graphName);
+    void generate_Graph();
     void generate_Graph(enum widget_ID changed_widget);
     void style_Graph(enum widget_ID changed_widget);
     void generate_Combobox_Titles();
@@ -108,13 +110,12 @@ class MainWindow : public QMainWindow
 
     void on_freestyleMode_radioButton_clicked();
 
-    void on_tabWidget_currentChanged(int index); // I want this to die horribly
+    void updateEditTab(int index);
+    void updateEditTab();
 
-    void updateEditTab(); // Easy fix but not ideal
-
-    void addGraphToEditTab(); // These three are what we want instead
-    void addNodeToEditTab();
-    void addEdgeToEditTab();
+    void addGraphToEditTab(Graph * graph);
+    void addNodeToEditTab(Node * node);
+    void addEdgeToEditTab(Edge * edge);
 
 private:
     void loadSettings();
@@ -125,6 +126,7 @@ private:
     QString fileDirectory;
     QGridLayout * gridLayout;
     QScrollArea * scroll;
+    QList<Graph *> graphList;
 };
 
 #endif // MAINWINDOW_H

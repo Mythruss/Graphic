@@ -307,8 +307,7 @@ CanvasView::mouseDoubleClickEvent(QMouseEvent * event)
       case mode::freestyle:
 	pt = mapToScene(event->pos());
 	qDeb() << "\tfreestyle mode: create a new node at " << pt;
-	createNode(pt);
-	emit nodeCreated();
+	emit nodeCreated(createNode(pt));
 	if (node1 != nullptr)
 	    node1->chosen(0);
 	node1 = nullptr;
@@ -367,8 +366,7 @@ CanvasView::mousePressEvent(QMouseEvent * event)
 		if (node1 != nullptr && node2 != nullptr && node1 != node2)
 		{
 		    qDeb() << "\t\tcalling addEdgeToScene(n1, n2) !";
-		    addEdgeToScene(node1, node2);
-		    emit edgeCreated();
+		    emit edgeCreated(addEdgeToScene(node1, node2));
 		    // qDeb() << "node1->pos() is " << node1->pos();
 		    // qDeb() << "node1->scenePos() is " << node1->scenePos();
 		    // TODO: without this horrible hack, edges
@@ -455,14 +453,14 @@ CanvasView::addEdgeToScene(Node * source, Node * destination)
     }
 
     Edge * edge = createEdge(source, destination);
-    if (node1->parentItem() == node2->parentItem()) // What if they share a root parent?!?!
+    if (node1->parentItem() == node2->parentItem())
     {
 	// Both nodes are from the same parent item
 	qDeb() << "\taETS: both nodes have the same parentItem";
         Graph * parent = qgraphicsitem_cast<Graph*>(node1->parentItem());
         edge->setParentItem(parent);
     }
-    else
+    else if (node1->findRootParent() != node2->findRootParent())
     {
 	qDeb() << "\taETS: nodes have different parentItems";
         /*
@@ -474,6 +472,7 @@ CanvasView::addEdgeToScene(Node * source, Node * destination)
 	 * recursive structure?  Joining doesn't currently (Nov 2019)
 	 * work properly when joining two "recursive" graphs.
          */
+
         Graph * root = new Graph();
         Graph * parent1 = nullptr;
         Graph * parent2 = nullptr;
@@ -482,10 +481,11 @@ CanvasView::addEdgeToScene(Node * source, Node * destination)
         parent2 = qgraphicsitem_cast<Graph*>(node2->parentItem());
 
         // Makes parent1 the parent of parent2's children. WIP
-        /*for (int i = 0; i < parent2->childItems().count(); i++)
+        /*foreach (QGraphicsItem * item, parent2->childItems())
         {
-            parent2->childItems().at(i)->setParentItem(parent1);
+            item->setParentItem(parent1);
         }
+        delete(parent2);
 
         edge->setZValue(0);
         edge->setParentItem(parent1);
@@ -512,6 +512,13 @@ CanvasView::addEdgeToScene(Node * source, Node * destination)
             // aScene->addItem(edge);
             edge->adjust();
         }
+        edge->causedConnect = 1;
+    }
+    else // A root parent was already made, so dont make another.
+    {
+        edge->setZValue(-1);
+        edge->setParentItem(node1->findRootParent());
+        edge->adjust();
     }
     qDeb() << "\taETS: done!";
     return edge;

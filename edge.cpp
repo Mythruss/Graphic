@@ -99,7 +99,7 @@ Edge::Edge(Node * sourceNode, Node * destNode)
     qDeb() << "Edge:Edge constructor called";
 
     setFlag(ItemIsSelectable);
-    setFlag(ItemIsFocusable);
+    setFlag(ItemIsFocusable); // Why is this here?
     setFlag(ItemSendsGeometryChanges);
     source = sourceNode;
     setZValue(0);
@@ -109,6 +109,7 @@ Edge::Edge(Node * sourceNode, Node * destNode)
     penSize = 1;
     rotation = 0;
     label = "";
+    causedConnect = 0;
     destRadius = destNode->getDiameter() / 2.;
     sourceRadius = destNode->getDiameter() / 2.;
     setHandlesChildEvents(true);
@@ -280,7 +281,7 @@ Edge::setLabel(QString aLabel)
  * Modifies:    The edge's label.
  * Returns:     Nothing.
  * Assumptions: None.
- * Bugs:        None.
+ * Bugs:        Sets the line edit text to u1 instead of u_{1} for subscripts.
  * Notes:       Not sure if anything should be done to htmlLabel.
  *              Edge.cpp and Node.cpp are very inconsistent in how they handle
  *              labels.

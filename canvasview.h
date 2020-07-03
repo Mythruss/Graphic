@@ -81,8 +81,8 @@ class CanvasView: public QGraphicsView
   signals:
 	void setKeyStatusLabelText(QString text);
 	void resetDragMode();
-	void nodeCreated();
-	void edgeCreated();
+	void nodeCreated(Node * node);
+	void edgeCreated(Edge * edge);
 
   protected:
 	void dragEnterEvent(QDragEnterEvent * event);

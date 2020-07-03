@@ -21,6 +21,7 @@
 
 #include "mainwindow.h"
 #include "node.h"
+#include "graph.h"
 
 #include <QGraphicsScene>
 
@@ -42,7 +43,7 @@ public:
     void setCanvasMode(int mode);
 
 signals:
-    void graphDropped();
+    void graphDropped(Graph * graph);
 
 protected:
     void dragMoveEvent (QGraphicsSceneDragDropEvent * event);
@@ -57,6 +58,7 @@ protected:
 private:
     int modeType;
     bool snapToGrid;
+    bool moved = false;
     const QSize mCellSize;		// The size of the cells in the grid.
     QGraphicsItem * mDragged;		// The item being dragged.
     Node * connectNode1a, * connectNode1b; // The first Nodes to be joined.

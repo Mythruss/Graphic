@@ -48,6 +48,6 @@ enum widget_ID {NO_WGT, ALL_WGT, nodeSize_WGT, nodeLabel1_WGT, nodeLabel2_WGT,
 		edgeLabelSize_WGT, edgeLineColour_WGT, graphRotation_WGT,
 		completeCheckBox_WGT, graphHeight_WGT, graphWidth_WGT,
 		numOfNodes1_WGT, numOfNodes2_WGT, graphTypeComboBox_WGT,
-		numLabelStart_WGT};
+		numLabelStart_WGT, nodeThickness_WGT};
 
 #endif

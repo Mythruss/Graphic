@@ -100,10 +100,11 @@ Node::Node()
     setFlag(ItemIsMovable);
     setFlag(ItemIsSelectable);
     setFlag(ItemSendsGeometryChanges);
-    setFlag(QGraphicsItem::ItemClipsChildrenToShape);
+    //setFlag(QGraphicsItem::ItemClipsChildrenToShape);
     setZValue(2);
     nodeID = -1;
     penStyle = 0;	// What type of pen style to use when drawing outline.
+    penSize = 1;        // Size of node line
     nodeDiameter = 1;
     rotation = 0;
     htmlLabel = new HTML_Label(this);
@@ -516,7 +517,7 @@ Node::setNodeLabel(QString aLabel)
  * Modifies:    The node's label.
  * Returns:     Nothing.
  * Assumptions: None.
- * Bugs:        None.
+ * Bugs:        Sets the line edit text to u1 instead of u_{1} for subscripts.
  * Notes:       Not sure if anything should be done to htmlLabel.
  *              Edge.cpp and Node.cpp are very inconsistent in how they handle
  *              labels.
@@ -766,6 +767,49 @@ Node::nodeDeleted()
 }*/
 
 
+/*
+ * Name:        setPenWidth()
+ * Purpose:     Sets the width (penSize) of the edge.
+ * Arguments:   The new width.
+ * Output:      Nothing.
+ * Modifies:    The edge's penSize.
+ * Returns:     Nothing.
+ * Assumptions: ?
+ * Bugs:        ?
+ * Notes:       The method is labeled setPenWidth and not setEdgeWidth because
+ *              penWidth is the naming convention used in Qt to draw a line.
+ *              See paint() function for further details and implementation.
+ */
+
+void
+Node::setPenWidth(qreal aPenWidth)
+{
+    penSize = aPenWidth;
+    update();
+}
+
+
+/*
+ * Name:        getPenWidth()
+ * Purpose:     Returns the width (penSize) of the edge.
+ * Arguments:   None.
+ * Output:      Nothing.
+ * Modifies:    Nothing.
+ * Returns:     A qreal, the penSize.
+ * Assumptions: None.
+ * Bugs:        None.
+ * Notes:       The method is labeled getPenWidth and not getEdgeWidth because
+ *              penWidth is the naming convention used in Qt to draw a line.
+ *              See paint() function for further details and implementation.
+ */
+
+qreal
+Node::getPenWidth()
+{
+    return penSize;
+}
+
+
 
 /*
  * Name:        paint()
@@ -800,6 +844,7 @@ Node::paint(QPainter * painter, const QStyleOptionGraphicsItem * option,
         pen.setStyle(Qt::SolidLine);
 
     pen.setColor(nodeLine);
+    pen.setWidthF(penSize);
     painter->setPen(pen);
 
     painter->drawEllipse(-1 * nodeDiameter / 2,

@@ -282,6 +282,7 @@
 
 static qreal screenPhysicalDPI_X, screenPhysicalDPI_Y;
 static qreal screenLogicalDPI_X;
+static int j = 0; // # of rows in edit tab
 
 QSettings settings("Acadia", "Graphic");
 
@@ -325,8 +326,6 @@ QMainWindow(parent),
 	    this, SLOT(load_Graphic_File()));
 
     // Ctrl-Q quits.
-    // TODO: we should ask whether to save an unsaved graph or not
-    //       before quitting.
     new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Q), this, SLOT(close()));
 
     // Ctrl-O pops up the open file dialog. REDUNDANT
@@ -353,8 +352,11 @@ QMainWindow(parent),
     // Redraw the preview pane graph (if any) when these NODE
     // parameters are modified:
     connect(ui->nodeSize,
-	    (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
-	    this, [this]() { generate_Graph(nodeSize_WGT); });
+            (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
+            this, [this]() { generate_Graph(nodeSize_WGT); });
+    connect(ui->nodeThickness,
+            (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
+            this, [this]() { generate_Graph(nodeThickness_WGT); });
     connect(ui->NodeLabel1,
 	    (void(QLineEdit::*)(const QString &))&QLineEdit::textChanged,
 	    this, [this]() { generate_Graph(nodeLabel1_WGT); });
@@ -374,8 +376,8 @@ QMainWindow(parent),
 	    (void(QPushButton::*)(bool))&QPushButton::clicked,
 	    this, [this]() { generate_Graph(nodeFillColour_WGT); });
     connect(ui->NodeOutlineColor,
-	    (void(QPushButton::*)(bool))&QPushButton::clicked,
-	    this, [this]() { generate_Graph(nodeOutlineColour_WGT); });
+            (void(QPushButton::*)(bool))&QPushButton::clicked,
+            this, [this]() { generate_Graph(nodeOutlineColour_WGT); });
 
     // Redraw the preview pane graph (if any) when these EDGE
     // parameters are modified:
@@ -421,7 +423,9 @@ QMainWindow(parent),
     // drawn in "Freestyle" mode are styled as per the settings in the
     // "Create Graph" tab.
     connect(ui->nodeSize, SIGNAL(valueChanged(double)),
-	    this, SLOT(nodeParamsUpdated()));
+            this, SLOT(nodeParamsUpdated()));
+    connect(ui->nodeThickness, SIGNAL(valueChanged(double)),
+            this, SLOT(nodeParamsUpdated()));
     connect(ui->NodeLabel1, SIGNAL(textChanged(QString)),
 	    this, SLOT(nodeParamsUpdated()));
     connect(ui->NodeLabel2, SIGNAL(textChanged(QString)),
@@ -433,7 +437,7 @@ QMainWindow(parent),
     connect(ui->NodeFillColor, SIGNAL(clicked(bool)),
 	    this, SLOT(nodeParamsUpdated()));
     connect(ui->NodeOutlineColor, SIGNAL(clicked(bool)),
-	    this, SLOT(nodeParamsUpdated()));
+            this, SLOT(nodeParamsUpdated()));
 
     connect(ui->edgeSize, SIGNAL(valueChanged(double)),
 	    this, SLOT(edgeParamsUpdated()));
@@ -451,13 +455,26 @@ QMainWindow(parent),
     connect(ui->canvas, SIGNAL(resetDragMode()),
 	    ui->dragMode_radioButton, SLOT(click()));
 
-    // Few more connections!!
-    connect(ui->canvas->scene(), SIGNAL(graphDropped()),
-            this, SLOT(updateEditTab())); // Kind of useless (for now)
-    connect(ui->canvas, SIGNAL(nodeCreated()),
+    // These connects update the edit tab when the number of items on the
+    // canvas changes.
+    connect(ui->canvas->scene(), SIGNAL(graphDropped(Graph*)),
             this, SLOT(updateEditTab()));
-    connect(ui->canvas, SIGNAL(edgeCreated()),
+    connect(ui->canvas, SIGNAL(nodeCreated(Node*)),
             this, SLOT(updateEditTab()));
+    connect(ui->canvas, SIGNAL(edgeCreated(Edge*)),
+            this, SLOT(updateEditTab()));
+
+    /*connect(ui->canvas->scene(), SIGNAL(graphDropped(Graph*)),
+            this, SLOT(addGraphToEditTab(Graph*)));
+    connect(ui->canvas, SIGNAL(nodeCreated(Node*)),
+            this, SLOT(addNodeToEditTab(Node*)));
+    connect(ui->canvas, SIGNAL(edgeCreated(Edge*)),
+            this, SLOT(addEdgeToEditTab(Edge*)));*/
+
+    // Adds a new graph to the preview pane when the previous is dropped onto
+    // the canvas.
+    connect(ui->canvas->scene(), SIGNAL(graphDropped(Graph*)),
+            this, SLOT(generate_Graph()));
 
     // Initialize the canvas to be in "drag" mode.
     ui->dragMode_radioButton->click();
@@ -477,7 +494,7 @@ QMainWindow(parent),
     ui->canvas->snapToGrid(ui->snapToGrid_checkBox->isChecked());
 
     set_Font_Sizes();
-    // Initialize font sizes for ui labels (Linux fix).
+    // Initialize font sizes for ui labels/widgets (Linux fix).
     gridLayout = new QGridLayout();
 
     //ui->editGraph->setLayout(gridLayout);
@@ -2025,11 +2042,19 @@ MainWindow::style_Graph(enum widget_ID what_changed)
 		ui->graphWidth->value(),
 		ui->graphHeight->value(), 
 		ui->graphRotation->value(),
-		ui->NumLabelStart->value());
+		ui->NumLabelStart->value(),
+		ui->nodeThickness->value());
 	}
     }
 }
 
+
+// Called when a graph is moved from preview to canvas.
+void
+MainWindow::generate_Graph()
+{
+    generate_Graph(NO_WGT);
+}
 
 
 /*
@@ -2144,6 +2169,10 @@ void
 MainWindow::on_NodeOutlineColor_clicked()
 {
     QColor color = QColorDialog::getColor();
+
+    if (!color.isValid())
+        return;
+
     QString s("background: #"
 	      + QString(color.red() < 16 ? "0" : "")
 	      + QString::number(color.red(), 16)
@@ -2176,6 +2205,9 @@ MainWindow::on_NodeFillColor_clicked()
 {
     QColor color = QColorDialog::getColor();
 
+    if (!color.isValid())
+        return;
+
     QString s("background: #"
 	      + QString(color.red() < 16 ? "0" : "")
 	      + QString::number(color.red(), 16)
@@ -2207,6 +2239,9 @@ void
 MainWindow::on_EdgeLineColor_clicked()
 {
     QColor color = QColorDialog::getColor();
+
+    if (!color.isValid())
+        return;
 
     QString s("background: #"
 	      + QString(color.red() < 16 ? "0" : "")
@@ -2275,9 +2310,9 @@ MainWindow::set_Font_Sizes()
     font.setPointSize(SUB_TITLE_SIZE);
     ui->partitionLabel->setFont(font);
     ui->colorLabel->setFont(font);
-    ui->rotationLabel->setFont(font);
 
     font.setPointSize(SUB_SUB_TITLE_SIZE);
+    ui->rotationLabel->setFont(font);
     ui->widthLabel->setFont(font);
     ui->heightLabel->setFont(font);
     ui->textInputLabel->setFont(font);
@@ -2356,13 +2391,6 @@ MainWindow::set_Interface_Sizes()
         this->resize(this->width()*scale, this->height()*scale);
         settings.setValue("windowSize", this->size());
     }
-
-    /*printf("MainwindowSHW: %d\n", this->sizeHint().width());
-    printf("MainwindowSHH: %d\n", this->sizeHint().height());
-    printf("MainwindowW: %d\n", this->width());
-    printf("MainwindowH: %d\n", this->height());
-    printf("MainwindowMinW: %d\n", this->minimumWidth());
-    printf("MainwindowMinH: %d\n", this->minimumHeight());*/
 }
 
 
@@ -2653,8 +2681,16 @@ MainWindow::on_freestyleMode_radioButton_clicked()
 }
 
 
+void
+MainWindow::updateEditTab() // Quick, ugly, dirty fix
+{
+    updateEditTab(0);
+    updateEditTab(1);
+}
+
+
 /*
- * Name:	on_tabWidget_currentChanged()
+ * Name:	updateEditTab (Formerly on_tabWidget_currentChanged())
  * Purpose:	Redraw the UI for the tabbed section at the left of
  *		the main UI window.
  * Arguments:	The tab index.
@@ -2663,13 +2699,13 @@ MainWindow::on_freestyleMode_radioButton_clicked()
  * Returns:	Nothing.
  * Assumptions:	?
  * Bugs:	?
- * Notes:	JD Q: what actually draws the UI for tab 0?  ui_mainwindow?
+ * Notes:	JD Q: what actually draws the UI for tab 0?  ui_mainwindow? YES
  */
 
 void
-MainWindow::on_tabWidget_currentChanged(int index)
+MainWindow::updateEditTab(int index)
 {
-    qDeb() << "MW::on_tabWidget_currentChanged(" << index << ")";
+    qDeb() << "MW::updateEditTab(" << index << ")";
     switch(index)
     {
       case 0:
@@ -2698,7 +2734,7 @@ MainWindow::on_tabWidget_currentChanged(int index)
 		      Graph * graph = qgraphicsitem_cast<Graph*>(item);
 
 		      QLabel * label = new QLabel("Graph");
-		      gridLayout->addWidget(label, i, 1);
+		      gridLayout->addWidget(label, i, 0);
 		      i++;
 
 		      QLabel * label2 = new QLabel("N Diam");
@@ -2890,8 +2926,8 @@ MainWindow::on_tabWidget_currentChanged(int index)
 	      // With this the setRowStretch() for i-1 is not needed.
 	      // The horror, the horror.
 	      QLabel * label = new QLabel(" ");
-	      gridLayout->addWidget(label, i, 1);
-	      gridLayout->setRowStretch(i, 40);
+	      gridLayout->addWidget(label, 1000, 1);
+	      gridLayout->setRowStretch(1000, 40);
 	  }
 	  break;
       }
@@ -2900,30 +2936,245 @@ MainWindow::on_tabWidget_currentChanged(int index)
     }
 }
 
+
+/*
+ * Name:	addGraphToEditTab()
+ * Purpose:	Should be used to dynamically update the edit tab. The dream.
+ * Arguments:	None.
+ * Output:	None.
+ * Modifies:	The edit tab.
+ * Returns:	None.
+ * Assumptions: ?
+ * Bugs:	?
+ * Notes:	Still need to decrement j when graphs/nodes/edges are deleted.
+ *              ... or do I? Also need to adjust graphs as nodes/edges are added.
+ */
+
+
 void
-MainWindow::updateEditTab() // Quick, ugly, dirty fix
+MainWindow::addGraphToEditTab(Graph * graph)
 {
-    on_tabWidget_currentChanged(0);
-    on_tabWidget_currentChanged(1);
+    graphList.append(graph);
+
+    QLabel * label = new QLabel("Graph");
+    gridLayout->addWidget(label, j, 1);
+    j++;
+
+    QLabel * label2 = new QLabel("N Diam");
+    gridLayout->addWidget(label2, j, 2);
+    QLabel * label3 = new QLabel("E width");
+    gridLayout->addWidget(label3, j+1, 2);
+    QLabel * label4 = new QLabel("Label");
+    gridLayout->addWidget(label4, j, 3);
+    QLabel * label5 = new QLabel("Text");
+    gridLayout->addWidget(label5, j, 4);
+    QLabel * label6 = new QLabel("Size");
+    gridLayout->addWidget(label6, j+1, 4);
+    QLabel * label7 = new QLabel("Line");
+    gridLayout->addWidget(label7, j, 5);
+    QLabel * label8 = new QLabel("Color");
+    gridLayout->addWidget(label8, j+1, 5);
+    QLabel * label9 = new QLabel("Fill");
+    gridLayout->addWidget(label9, j, 6);
+    QLabel * label10 = new QLabel("Color");
+    gridLayout->addWidget(label10, j+1, 6);
+    j += 2;
+
+    // Horrible, ugly connects....
+    connect(graph, SIGNAL(destroyed(QObject*)),
+            label, SLOT(deleteLater()));
+    connect(graph, SIGNAL(destroyed(QObject*)),
+            label2, SLOT(deleteLater()));
+    connect(graph, SIGNAL(destroyed(QObject*)),
+            label3, SLOT(deleteLater()));
+    connect(graph, SIGNAL(destroyed(QObject*)),
+            label4, SLOT(deleteLater()));
+    connect(graph, SIGNAL(destroyed(QObject*)),
+            label5, SLOT(deleteLater()));
+    connect(graph, SIGNAL(destroyed(QObject*)),
+            label6, SLOT(deleteLater()));
+    connect(graph, SIGNAL(destroyed(QObject*)),
+            label7, SLOT(deleteLater()));
+    connect(graph, SIGNAL(destroyed(QObject*)),
+            label8, SLOT(deleteLater()));
+    connect(graph, SIGNAL(destroyed(QObject*)),
+            label9, SLOT(deleteLater()));
+    connect(graph, SIGNAL(destroyed(QObject*)),
+            label10, SLOT(deleteLater()));
+
+    QList<QGraphicsItem *> list;
+    foreach (QGraphicsItem * gItem, graph->childItems())
+        list.append(gItem);
+
+    while (!list.isEmpty())
+    {
+        foreach (QGraphicsItem * gItem, list)
+        {
+            if (gItem != nullptr)
+            {
+                if (gItem->type() == Graph::Type)
+                    list.append(gItem->childItems());
+
+		else if (gItem->type() == Node::Type)
+		{
+		    Node * node = qgraphicsitem_cast<Node*>(gItem);
+		    addNodeToEditTab(node);
+		}
+		else if (gItem->type() == Edge::Type)
+		{
+		    Edge * edge
+			= qgraphicsitem_cast<Edge*>(gItem);
+		    addEdgeToEditTab(edge);
+		}
+	    }
+	    list.removeFirst();
+	}
+    }
 }
 
-// We will use these bad boys after I tear on_tabWidget_currentChanged() apart
-void
-MainWindow::addGraphToEditTab()
-{
-
-}
 
 void
-MainWindow::addNodeToEditTab()
+MainWindow::addNodeToEditTab(Node * node)
 {
+    int exists = 0;
+    Graph * nodeParent = qgraphicsitem_cast<Graph*>(node->parentItem());
+    foreach (Graph * graph, graphList)
+    {
+        if (nodeParent == graph)
+            exists = 1;
+    }
 
+    if (exists == 0)
+    {
+        addGraphToEditTab(nodeParent);
+        return;
+    }
+    else
+        ;// i = end index of existing graph on edit tab which should be j?
+
+    QLineEdit * nodeEdit = new QLineEdit();
+    // Q: what was the point of this?
+    // nodeEdit->setText("Node\n");
+    // gridLayout->addWidget(nodeEdit);
+
+    QLabel * label = new QLabel("Node");
+    // When this node is deleted, also
+    // delete its label in the edit tab.
+    connect(node, SIGNAL(destroyed(QObject*)),
+            label, SLOT(deleteLater()));
+    //connect(node, SIGNAL(isSelected()),
+    //        label, SLOT(setBold(bool)));
+
+    QDoubleSpinBox * sizeBox
+        = new QDoubleSpinBox();
+
+    QPushButton * lineColorButton
+        = new QPushButton();
+    QPushButton * fillColorButton
+        = new QPushButton();
+
+    QSpinBox * fontSizeBox
+        = new QSpinBox();
+
+    // All controllers handle deleting of widgets
+    SizeController * sizeController
+        = new SizeController(node, sizeBox);
+    ColorLineController * colorLineController
+        = new ColorLineController(node,
+                                  lineColorButton);
+    LabelController * weightController
+        = new LabelController(node, nodeEdit);
+    LabelSizeController * weightSizeController
+        = new LabelSizeController(node,
+                                  fontSizeBox);
+    ColorFillController * colorFillController
+        = new ColorFillController(node,
+                                  fillColorButton);
+
+    gridLayout->addWidget(label, j, 1);
+    gridLayout->addWidget(sizeBox, j, 2);
+    gridLayout->addWidget(nodeEdit,  j, 3);
+    gridLayout->addWidget(fontSizeBox, j, 4);
+    gridLayout->addWidget(lineColorButton, j, 5);
+    gridLayout->addWidget(fillColorButton, j, 6);
+    Q_UNUSED(sizeController);
+    Q_UNUSED(colorLineController);
+    Q_UNUSED(colorFillController);
+    Q_UNUSED(weightController);
+    Q_UNUSED(weightSizeController);
+    j++;
 }
+
+
 void
-MainWindow::addEdgeToEditTab()
+MainWindow::addEdgeToEditTab(Edge * edge)
 {
+    // Check if edge connected two separate graphs
+    if (edge->causedConnect == 1)
+    {   // If so, we need to amalgate the two in the edit tab only...
+        // Perhaps remove headers from first 3 rows of one graph (first 10 indexes)
+        // then move any entries for that graph to be with the other graph
+        Graph * parent1 = nullptr;
+        Graph * parent2 = nullptr;
 
+        foreach (Graph * graph, graphList)
+        {
+            if (graph->parentItem() != nullptr)
+            {
+                if (parent1 == nullptr)
+                    parent1 = graph;
+                else
+                    parent2 = graph;
+            }
+        }
+        // ..............?
+        ; // i = end index of the other graph
+    }
+    else
+        ; // i = end index of edge's root parent graph
+
+    QLineEdit * editEdge = new QLineEdit();
+    // Q: what were these for??
+    // editEdge->setText("Edge\n");
+    // gridLayout->addWidget(editEdge);
+
+    QLabel * label = new QLabel("Edge");
+    // When this edge is deleted, also
+    // delete its label in the edit tab.
+    connect(edge, SIGNAL(destroyed(QObject*)),
+            label, SLOT(deleteLater()));
+    //connect(edge, SIGNAL(isSelected()),
+    //        label, SLOT(setBold(bool)));
+
+    QPushButton * button = new QPushButton();
+    QDoubleSpinBox * sizeBox
+        = new QDoubleSpinBox();
+    QSpinBox * fontSizeBox
+        = new QSpinBox();
+
+    // All controllers handle deleting of widgets
+    SizeController * sizeController
+        = new SizeController(edge, sizeBox);
+    ColorLineController * colorController
+        = new ColorLineController(edge, button);
+    LabelController * weightController
+        = new LabelController(edge, editEdge);
+    LabelSizeController * weightSizeController
+        = new LabelSizeController(edge,
+                                  fontSizeBox);
+
+    gridLayout->addWidget(label, j, 1);
+    gridLayout->addWidget(sizeBox, j, 2);
+    gridLayout->addWidget(editEdge, j, 3);
+    gridLayout->addWidget(fontSizeBox, j, 4);
+    gridLayout->addWidget(button, j, 5);
+    Q_UNUSED(sizeController);
+    Q_UNUSED(colorController);
+    Q_UNUSED(weightController);
+    Q_UNUSED(weightSizeController);
+    j++;
 }
+
 
 void
 MainWindow::dumpTikZ()
@@ -3006,9 +3257,11 @@ MainWindow::closeEvent (QCloseEvent *event)
 {
     if (!ui->canvas->scene()->itemsBoundingRect().isEmpty())
     {
-        QMessageBox::StandardButton closeBtn = QMessageBox::question(this, "Graphic",
-                                                                     tr("Save graph before quitting?\n"),
-                                                                     QMessageBox::Cancel | QMessageBox::No | QMessageBox::Yes);
+        QMessageBox::StandardButton closeBtn
+                = QMessageBox::question(this, "Graphic",
+                                        tr("Save graph before quitting?\n"),
+                                        QMessageBox::Cancel | QMessageBox::No
+                                        | QMessageBox::Yes);
         if (closeBtn == QMessageBox::Cancel)
         {
             event->ignore();

@@ -34,9 +34,9 @@ public:
 
 private slots:
     void setEdgeLabel(QString string);
-    void setEdgeLabel2();
+    void setEditLabel1();
     void setNodeLabel(QString string);
-    void setNodeLabel2();
+    void setEditLabel2();
     void deletedLineEdit();
 
 private:

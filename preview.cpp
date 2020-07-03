@@ -420,7 +420,8 @@ PreView::Style_Graph(Graph * graph,		    int graphType,
 		     qreal edgeSize,		    QString edgeLabel,
 		     qreal edgeLabelSize,	    QColor edgeLineColor,
 		     qreal totalWidth,		    qreal totalHeight,
-		     qreal rotation,		    qreal numStart)
+		     qreal rotation,		    qreal numStart,
+		     qreal nodeThickness)
 {
     qDeb() << "PV::Style_Graph(wid:" << what_changed << ") called.";
 
@@ -457,6 +458,7 @@ PreView::Style_Graph(Graph * graph,		    int graphType,
         {
 	    Node * node = qgraphicsitem_cast<Node *>(item);
 	    node->setParentItem(nullptr);	    // ?? Eh?
+	    GUARD(nodeThickness_WGT) node->setPenWidth(nodeThickness);
 	    GUARD(nodeSize_WGT) node->setDiameter(nodeDiameter);
 	    GUARD(nodeFillColour_WGT) node->setFillColour(nodeFillColor);
 	    GUARD(nodeOutlineColour_WGT) node->setLineColour(nodeOutlineColor);

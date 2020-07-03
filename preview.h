@@ -56,7 +56,8 @@ class PreView: public QGraphicsView
 		       qreal edgeSize,		    QString edgeLabel,
 		       qreal edgeLabelSize,	    QColor edgeLineColor,
 		       qreal totalWidth,	    qreal totalHeight,
-		       qreal rotation,		    qreal numStart);
+		       qreal rotation,		    qreal numStart,
+		       qreal nodeThickness);
 
   protected:
     virtual void keyPressEvent(QKeyEvent * event);

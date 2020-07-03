@@ -62,6 +62,9 @@ class Node : public QGraphicsObject
     void setDiameter(qreal diameter);
     qreal getDiameter();
 
+    void setPenWidth(qreal aPenWidth);
+    qreal getPenWidth();
+
     void setRotation(qreal aRotation);
     qreal getRotation();
 
@@ -122,6 +125,7 @@ class Node : public QGraphicsObject
     QColor	nodeLine, nodeFill;
     int		nodeID;		    // The (internal) number of the node.
     int		penStyle;
+    qreal       penSize;
     bool	select;
     qreal	physicalDotsPerInchX;
     void	labelToHtml();

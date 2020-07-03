@@ -98,6 +98,7 @@ public:
      //~Edge(); deconstructor a WIP
 
     HTML_Label * htmlLabel;
+    int causedConnect;
 
 public slots:
     void setEdgeLabel();
