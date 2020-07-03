@@ -241,6 +241,7 @@
  * July 3, 2020 (IC V1.37)
  *  (a) Added another connection to update the preview and params when node
  *      thickness is adjusted.
+ *  (b) Updated set_Font_Sizes() to include the new thickness widgets.
  */
 
 #include "mainwindow.h"
@@ -2321,6 +2322,7 @@ MainWindow::set_Font_Sizes()
     ui->colorLabel->setFont(font);
 
     font.setPointSize(SUB_SUB_TITLE_SIZE);
+    ui->thicknessLabel->setFont(font);
     ui->rotationLabel->setFont(font);
     ui->widthLabel->setFont(font);
     ui->heightLabel->setFont(font);
@@ -2347,6 +2349,7 @@ MainWindow::set_Font_Sizes()
     ui->graphWidth->setFont(font);
     ui->numOfNodes1->setFont(font);
     ui->numOfNodes2->setFont(font);
+    ui->nodeThickness->setFont(font);
     ui->graphRotation->setFont(font);
     ui->EdgeLabelSize->setFont(font);
     ui->edgeSize->setFont(font);
