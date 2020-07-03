@@ -2,7 +2,7 @@
  * File:	defuns.h
  * Author:	Jim Diamond
  * Date:	2019-12-10
- * Version:	1.2
+ * Version:	1.3
  *
  * Purpose:	Hold definitions that are needed by multiple classes
  *		and yet don't seem to meaningfully fit anywhere else.
@@ -20,7 +20,9 @@
  * May 25, 2020 (IC V1.1)
  *  (a) Added numLabelStart_WGT
  * June 9, 2020 (IC V1.2)
- *  (a) Moved BUTTON_STYLE here so it is not repeated across 3 files
+ *  (a) Moved BUTTON_STYLE here so it is not repeated across 3 files.
+ * June 3, 2020 (IC V1.3)
+ *  (a) Added nodeThickness_WGT
  */
 
 #ifndef DEFUNS_H

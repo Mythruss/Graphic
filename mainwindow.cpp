@@ -2,7 +2,7 @@
  * File:	mainwindow.cpp
  * Author:	Rachel Bood
  * Date:	January 25, 2015.
- * Version:	1.34
+ * Version:	1.37
  *
  * Purpose:	Implement the main window and functions called from there.
  *
@@ -232,6 +232,15 @@
  * June 19, 2020 (IC V1.34)
  *  (a) Added multiple slots and appropriate connections for updating edit tab
  *      when graphs/nodes/edges are created.
+ * June 26, 2020 (IC V1.35)
+ *  (a) Fixed a bug that would set the colour to black if user exited the
+ *      colour select window without selecting a colour.
+ * June 30, 2020 (IC V1.36)
+ *  (a) Added another connection to refresh the preview pane with a new graph
+ *      when the previous is dropped onto the canvas.
+ * July 3, 2020 (IC V1.37)
+ *  (a) Added another connection to update the preview and params when node
+ *      thickness is adjusted.
  */
 
 #include "mainwindow.h"
@@ -352,11 +361,11 @@ QMainWindow(parent),
     // Redraw the preview pane graph (if any) when these NODE
     // parameters are modified:
     connect(ui->nodeSize,
-            (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
-            this, [this]() { generate_Graph(nodeSize_WGT); });
+	    (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
+	    this, [this]() { generate_Graph(nodeSize_WGT); });
     connect(ui->nodeThickness,
-            (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
-            this, [this]() { generate_Graph(nodeThickness_WGT); });
+	    (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
+	    this, [this]() { generate_Graph(nodeThickness_WGT); });
     connect(ui->NodeLabel1,
 	    (void(QLineEdit::*)(const QString &))&QLineEdit::textChanged,
 	    this, [this]() { generate_Graph(nodeLabel1_WGT); });
@@ -376,8 +385,8 @@ QMainWindow(parent),
 	    (void(QPushButton::*)(bool))&QPushButton::clicked,
 	    this, [this]() { generate_Graph(nodeFillColour_WGT); });
     connect(ui->NodeOutlineColor,
-            (void(QPushButton::*)(bool))&QPushButton::clicked,
-            this, [this]() { generate_Graph(nodeOutlineColour_WGT); });
+	    (void(QPushButton::*)(bool))&QPushButton::clicked,
+	    this, [this]() { generate_Graph(nodeOutlineColour_WGT); });
 
     // Redraw the preview pane graph (if any) when these EDGE
     // parameters are modified:
@@ -423,9 +432,9 @@ QMainWindow(parent),
     // drawn in "Freestyle" mode are styled as per the settings in the
     // "Create Graph" tab.
     connect(ui->nodeSize, SIGNAL(valueChanged(double)),
-            this, SLOT(nodeParamsUpdated()));
+	    this, SLOT(nodeParamsUpdated()));
     connect(ui->nodeThickness, SIGNAL(valueChanged(double)),
-            this, SLOT(nodeParamsUpdated()));
+	    this, SLOT(nodeParamsUpdated()));
     connect(ui->NodeLabel1, SIGNAL(textChanged(QString)),
 	    this, SLOT(nodeParamsUpdated()));
     connect(ui->NodeLabel2, SIGNAL(textChanged(QString)),
@@ -437,7 +446,7 @@ QMainWindow(parent),
     connect(ui->NodeFillColor, SIGNAL(clicked(bool)),
 	    this, SLOT(nodeParamsUpdated()));
     connect(ui->NodeOutlineColor, SIGNAL(clicked(bool)),
-            this, SLOT(nodeParamsUpdated()));
+	    this, SLOT(nodeParamsUpdated()));
 
     connect(ui->edgeSize, SIGNAL(valueChanged(double)),
 	    this, SLOT(edgeParamsUpdated()));
@@ -458,11 +467,11 @@ QMainWindow(parent),
     // These connects update the edit tab when the number of items on the
     // canvas changes.
     connect(ui->canvas->scene(), SIGNAL(graphDropped(Graph*)),
-            this, SLOT(updateEditTab()));
+	    this, SLOT(updateEditTab()));
     connect(ui->canvas, SIGNAL(nodeCreated(Node*)),
-            this, SLOT(updateEditTab()));
+	    this, SLOT(updateEditTab()));
     connect(ui->canvas, SIGNAL(edgeCreated(Edge*)),
-            this, SLOT(updateEditTab()));
+	    this, SLOT(updateEditTab()));
 
     /*connect(ui->canvas->scene(), SIGNAL(graphDropped(Graph*)),
             this, SLOT(addGraphToEditTab(Graph*)));
@@ -474,7 +483,7 @@ QMainWindow(parent),
     // Adds a new graph to the preview pane when the previous is dropped onto
     // the canvas.
     connect(ui->canvas->scene(), SIGNAL(graphDropped(Graph*)),
-            this, SLOT(generate_Graph()));
+	    this, SLOT(generate_Graph()));
 
     // Initialize the canvas to be in "drag" mode.
     ui->dragMode_radioButton->click();

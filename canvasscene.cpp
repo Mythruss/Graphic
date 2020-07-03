@@ -387,7 +387,7 @@ CanvasScene::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 }
 
 
-// TODO: Prevent node/graph from moving if mouse didn't move.
+
 void
 CanvasScene::mouseReleaseEvent(QGraphicsSceneMouseEvent * event)
 {

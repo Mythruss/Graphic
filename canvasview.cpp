@@ -2,7 +2,7 @@
  * File:    canvasview.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.16
+ * Version: 1.17
  *
  * Purpose: Initializes a QGraphicsView that is used to house the
  *	    QGraphicsScene.
@@ -56,6 +56,9 @@
  * June 19, 2020 (IC V1.16)
  *  (a) Added nodeCreated() and edgeCreated() signals to tell mainWindow to
  *      update the edit tab.
+ * June 26, 2020 (IC V1.17)
+ *  (a) Updated addEdgeToScene() to prevent additional root parents from being
+ *      created if a root parent was previously created.
  */
 
 #include "canvasview.h"

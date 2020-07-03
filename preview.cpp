@@ -2,7 +2,7 @@
  * File:    preview.cpp
  * Author:  Rachel Bood 100088769
  * Date:    2014/11/07
- * Version: 1.8
+ * Version: 1.9
  *
  * Purpose: Initializes a QGraphicsView that is used to house the QGraphicsScene
  *
@@ -55,6 +55,9 @@
  * May 25, 2020 (IC V1.8)
  *  (a) Added numStart param to Style_Graph() to allow numbering of nodes
  *	to start at a specified value instead of only 0.
+ * July 3, 2020 (IC V1.9)
+ *  (a) Added nodeThickness param to Style_Graph() to allow adjusting
+ *      thickness of nodes.
  */
 
 #include "basicgraphs.h"

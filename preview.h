@@ -2,7 +2,7 @@
  * File:    preview.h
  * Author:  Rachel Bood 100088769
  * Date:    2014/11/07 (?)
- * Version: 1.3
+ * Version: 1.4
  *
  * Purpose: define the fields of the preview class.
  *
@@ -24,6 +24,9 @@
  * May 25, 2020 (IC V1.3)
  *  (a) Added numStart param to Style_Graph() to allow numbering of nodes
  *	to start at a specified value instead of only 0.
+ * July 3, 2020 (IC V1.4)
+ *  (a) Added nodeThickness param to Style_Graph() to allow adjusting
+ *      thickness of nodes.
  */
 
 #ifndef PREVIEW_H

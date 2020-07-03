@@ -2,7 +2,7 @@
  * File:    node.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.10
+ * Version: 1.11
  *
  * Purpose: creates a node for the users graph
  *
@@ -63,6 +63,9 @@
  * June 18, 2020 (IC V1.10)
  *  (a) Added setNodeLabel() and appropriate connect in the contructor to
  *      update label when changes are made on the canvas in edit mode.
+ * July 3, 2020 (IC V1.11)
+ *  (a) Added setter and getter for node pen width and updated the painter
+ *      to allow user to change thickness of a node.
  */
 
 #include "defuns.h"
@@ -769,14 +772,14 @@ Node::nodeDeleted()
 
 /*
  * Name:        setPenWidth()
- * Purpose:     Sets the width (penSize) of the edge.
+ * Purpose:     Sets the width (penSize) of the node.
  * Arguments:   The new width.
  * Output:      Nothing.
- * Modifies:    The edge's penSize.
+ * Modifies:    The node's penSize.
  * Returns:     Nothing.
  * Assumptions: ?
  * Bugs:        ?
- * Notes:       The method is labeled setPenWidth and not setEdgeWidth because
+ * Notes:       The method is labeled setPenWidth and not setNodeWidth because
  *              penWidth is the naming convention used in Qt to draw a line.
  *              See paint() function for further details and implementation.
  */
@@ -791,14 +794,14 @@ Node::setPenWidth(qreal aPenWidth)
 
 /*
  * Name:        getPenWidth()
- * Purpose:     Returns the width (penSize) of the edge.
+ * Purpose:     Returns the width (penSize) of the node.
  * Arguments:   None.
  * Output:      Nothing.
  * Modifies:    Nothing.
  * Returns:     A qreal, the penSize.
  * Assumptions: None.
  * Bugs:        None.
- * Notes:       The method is labeled getPenWidth and not getEdgeWidth because
+ * Notes:       The method is labeled getPenWidth and not getNodeWidth because
  *              penWidth is the naming convention used in Qt to draw a line.
  *              See paint() function for further details and implementation.
  */
