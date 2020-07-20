@@ -126,17 +126,41 @@ QRectF Graph::boundingRect() const
  */
 void Graph::setRotation(qreal aRotation)
 {
-    for (QGraphicsItem * child: this->childItems())
+    QList<QGraphicsItem *> list;
+    foreach (QGraphicsItem * gItem, this->childItems())
+    {
+        list.append(gItem);
+    }
+
+    bool noGraphs = false;
+    while (!noGraphs)
+    {
+        noGraphs = true;
+        foreach (QGraphicsItem * i, list)
+        {
+            if (i->type() == Graph::Type)
+            {
+                noGraphs = false;
+                foreach(QGraphicsItem * children, i->childItems())
+                    list.append(children);
+                list.removeAt(list.indexOf(i));
+            }
+        }
+    }
+
+    foreach (QGraphicsItem * child, list)
     {
         if (child != nullptr || child != 0)
         {
             if (child->type() == Node::Type)
             {
-                child->setRotation(-aRotation);
+                Node * node = qgraphicsitem_cast<Node*>(child);
+                node->setRotation(-aRotation);
             }
             else if(child->type() == Edge::Type)
             {
-                child->setRotation(-aRotation);
+                Edge * edge = qgraphicsitem_cast<Edge*>(child);
+                edge->setRotation(-aRotation);
             }
         }
     }

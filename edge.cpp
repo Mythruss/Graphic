@@ -99,7 +99,7 @@ Edge::Edge(Node * sourceNode, Node * destNode)
     qDeb() << "Edge:Edge constructor called";
 
     setFlag(ItemIsSelectable);
-    setFlag(ItemIsFocusable); // Why is this here?
+    setFlag(ItemIsFocusable);
     setFlag(ItemSendsGeometryChanges);
     source = sourceNode;
     setZValue(0);
@@ -114,11 +114,6 @@ Edge::Edge(Node * sourceNode, Node * destNode)
     sourceRadius = destNode->getDiameter() / 2.;
     setHandlesChildEvents(true);
     htmlLabel = new HTML_Label(this);
-    htmlLabel->setPos((edgeLine.p2().rx() + edgeLine.p1().rx()) / 2.
-		      - htmlLabel->boundingRect().width() / 2.,
-		      (edgeLine.p2().ry() + edgeLine.p1().ry()) / 2.
-		      - htmlLabel->boundingRect().height() / 2.);
-    adjust();
 
     connect(htmlLabel->document(), SIGNAL(contentsChanged()),
             this, SLOT(setEdgeLabel()));
@@ -281,7 +276,7 @@ Edge::setLabel(QString aLabel)
  * Modifies:    The edge's label.
  * Returns:     Nothing.
  * Assumptions: None.
- * Bugs:        Sets the line edit text to u1 instead of u_{1} for subscripts.
+ * Bugs:        Sets the lineEdit text to u1 instead of u_{1} for subscripts.
  * Notes:       Not sure if anything should be done to htmlLabel.
  *              Edge.cpp and Node.cpp are very inconsistent in how they handle
  *              labels.
@@ -798,13 +793,10 @@ Edge::paint(QPainter * painter, const QStyleOptionGraphicsItem * option,
     if (debug)
         painter->drawPolygon(selectionPolygon);
 
-    if (label.length() > 0)
-    {
-	htmlLabel->setPos((line.p2().rx() + line.p1().rx()) / 2.
-			  - htmlLabel->boundingRect().width() / 2.,
-			  (line.p2().ry() + line.p1().ry()) / 2.
-			  - htmlLabel->boundingRect().height() / 2.);
-    }
+    htmlLabel->setPos((line.p2().rx() + line.p1().rx()) / 2.
+                      - htmlLabel->boundingRect().width() / 2.,
+                      (line.p2().ry() + line.p1().ry()) / 2.
+                      - htmlLabel->boundingRect().height() / 2.);
 }
 
 

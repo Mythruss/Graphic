@@ -62,9 +62,9 @@ HTML_Label::HTML_Label(QGraphicsItem * parent)
 
     this->setParentItem(parent);
     htmlLabelText = ""; // Never updated?
-    setZValue(3);
-    QFont font;
+    setZValue(5);
 
+    QFont font;
     font.setFamily(QStringLiteral("cmmi10"));
     font.setBold(false);
     font.setWeight(50);

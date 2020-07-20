@@ -4,33 +4,36 @@
 SizeController::SizeController(Edge *anEdge, QDoubleSpinBox *aBox)
 {
     edge = anEdge;
-    box = aBox;
-    if (box != nullptr || box != 0)
+    box1 = aBox;
+    if (box1 != nullptr || box1 != 0)
     {
-        box->setValue(edge->getPenWidth());
-        connect(box, SIGNAL( valueChanged(double)),
+        box1->setValue(edge->getPenWidth());
+        connect(box1, SIGNAL( valueChanged(double)),
                 this, SLOT(setEdgeSize(double)));
         connect(anEdge, SIGNAL(destroyed(QObject*)),
-                this, SLOT(deletedBox()));
+                this, SLOT(deletedEdgeBox()));
         connect(anEdge, SIGNAL(destroyed(QObject*)),
                 this, SLOT(deleteLater()));
     }
 }
 
-SizeController::SizeController(Node * aNode, QDoubleSpinBox *aBox)
+SizeController::SizeController(Node * aNode, QDoubleSpinBox *diamBox,
+                               QDoubleSpinBox *thicknessBox)
 {
     node = aNode;
-    box = aBox;
-    if (box != nullptr || box != 0)
+    box1 = diamBox;
+    box2 = thicknessBox;
+    if ((box1 != nullptr || box1 != 0) && (box2 != nullptr || box2 != 0))
     {
-        box->setValue(node->getDiameter());
-        box->setSingleStep(0.05
-                           );
-        connect(box, SIGNAL( valueChanged(double)),
+        box1->setValue(node->getDiameter());
+        box1->setSingleStep(0.05);
+        box2->setValue(node->getPenWidth());
+        connect(box1, SIGNAL(valueChanged(double)),
                 this, SLOT(setNodeSize(double)));
-
+        connect(box2, SIGNAL(valueChanged(double)),
+                this, SLOT(setNodeSize2(double)));
         connect(aNode, SIGNAL(destroyed(QObject*)),
-                this, SLOT(deletedBox()));
+                this, SLOT(deletedNodeBoxes()));
         connect(aNode, SIGNAL(destroyed(QObject*)),
                 this, SLOT(deleteLater()));
     }
@@ -48,8 +51,20 @@ void SizeController::setNodeSize(double value)
         node->setDiameter(value);
 }
 
-void SizeController::deletedBox()
+void SizeController::setNodeSize2(double value)
 {
-    delete box;
+    if (node != nullptr || node != 0)
+        node->setPenWidth(value);
+}
+
+void SizeController::deletedEdgeBox()
+{
+    delete box1;
+}
+
+void SizeController::deletedNodeBoxes()
+{
+    delete box1;
+    delete box2;
 }
 

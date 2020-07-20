@@ -326,7 +326,7 @@ CanvasView::mouseDoubleClickEvent(QMouseEvent * event)
 
 
 void
-CanvasView::mousePressEvent(QMouseEvent * event)
+CanvasView::mousePressEvent(QMouseEvent * event) // Should this be in CS?
 {
     qDeb() << "CV::mousePressEvent(" << event->screenPos() << ")"
 	   << " mode is " << getModeName(getMode());

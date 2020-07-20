@@ -37,6 +37,7 @@
 
 #include <QGraphicsView>
 #include <QGraphicsSceneMouseEvent>
+#include <QLabel>
 
 
 class PreView: public QGraphicsView
@@ -61,6 +62,9 @@ class PreView: public QGraphicsView
 		       qreal totalWidth,	    qreal totalHeight,
 		       qreal rotation,		    qreal numStart,
 		       qreal nodeThickness);
+
+  signals:
+      void zoomChanged(QString zoomText);
 
   protected:
     virtual void keyPressEvent(QKeyEvent * event);

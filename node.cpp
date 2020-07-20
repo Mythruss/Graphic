@@ -107,7 +107,7 @@ Node::Node()
     setZValue(2);
     nodeID = -1;
     penStyle = 0;	// What type of pen style to use when drawing outline.
-    penSize = 1;        // Size of node line
+    penSize = 1;        // Size of node outline
     nodeDiameter = 1;
     rotation = 0;
     htmlLabel = new HTML_Label(this);
@@ -232,8 +232,11 @@ qreal Node::getDiameter()
 void
 Node::setRotation(qreal aRotation)
 {
-   rotation = aRotation;
-   QGraphicsItem::setRotation(aRotation);
+    qDeb() << "N::setRotation(" << aRotation
+           << ") call on node(" << this->getLabel() << ")";
+
+    rotation = aRotation;
+    QGraphicsItem::setRotation(aRotation);
 }
 
 
@@ -520,7 +523,7 @@ Node::setNodeLabel(QString aLabel)
  * Modifies:    The node's label.
  * Returns:     Nothing.
  * Assumptions: None.
- * Bugs:        Sets the line edit text to u1 instead of u_{1} for subscripts.
+ * Bugs:        Sets the lineEdit text to u1 instead of u_{1} for subscripts.
  * Notes:       Not sure if anything should be done to htmlLabel.
  *              Edge.cpp and Node.cpp are very inconsistent in how they handle
  *              labels.

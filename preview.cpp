@@ -58,6 +58,8 @@
  * July 3, 2020 (IC V1.9)
  *  (a) Added nodeThickness param to Style_Graph() to allow adjusting
  *      thickness of nodes.
+ *  (b) Fixed keyPressEvent to require Ctrl+ and Ctrl- to zoom out/in instead
+ *      of just + and - keys.
  */
 
 #include "basicgraphs.h"
@@ -83,7 +85,9 @@
 
 // This is the factor by which the preview pane is zoomed for each
 // zoom in or zoom out operation.
-#define SCALE_FACTOR    1.2
+#define SCALE_FACTOR    1.1
+static qreal zoomValue = 100;
+static QString zoomDisplayText = "Zoom: " + QString::number(zoomValue) + "%";
 
 
 /*
@@ -133,20 +137,24 @@ PreView::keyPressEvent(QKeyEvent * event)
 {
     qDeb() << "PV:keyPressEvent(" << event->key() << ") called.";
 
-    switch (event->key())
+    if (event->modifiers().testFlag(Qt::ControlModifier))
     {
-      case Qt::Key_Plus:
-      case Qt::Key_Equal:
-        zoomIn();
-        break;
-      case Qt::Key_Minus:
-        zoomOut();
-        break;
-      case Qt::Key_Delete:
-	// TODO: why is this here??
-        break;
-      default:
-        QGraphicsView::keyPressEvent(event);
+        switch (event->key())
+        {
+          //case Qt::Key_Plus:
+          case Qt::Key_Equal:
+            zoomIn();
+            break;
+          //case Qt::Key_Underscore:
+          case Qt::Key_Minus:
+            zoomOut();
+            break;
+          case Qt::Key_Delete:
+	    // TODO: why is this here??
+            break;
+          default:
+            QGraphicsView::keyPressEvent(event);
+	}
     }
 }
 
@@ -171,9 +179,21 @@ PreView::scaleView(qreal scaleFactor)
 
     qreal factor = transform().scale(scaleFactor, scaleFactor)
                 .mapRect(QRectF(0, 0, 1, 1)).width();
-    if (factor < 0.07 || factor > 100)
+    if (factor < 0.07 || factor > 10) // Why these values?
         return;
     scale(scaleFactor, scaleFactor);
+
+    // Determine how displayed zoom value needs to update
+    qreal afterFactor = transform().scale(scaleFactor, scaleFactor)
+            .mapRect(QRectF(0, 0, 1, 1)).width();
+    if (afterFactor > factor)
+        zoomValue = zoomValue*SCALE_FACTOR;
+    else
+        zoomValue = zoomValue/SCALE_FACTOR;
+
+    // Update and show the current zoom
+    zoomDisplayText = "Zoom: " + QString::number(zoomValue, 'f', 0) + "%";
+    emit zoomChanged(zoomDisplayText);
 }
 
 
@@ -311,7 +331,7 @@ PreView::Create_Basic_Graph(int graphType, int numOfNodes1, int numOfNodes2,
 	   << this->scene()->items().size() << " items";
 
     // We are making a new graph: away with the old one.
-    this->scene()->clear();
+    this->scene()->clear(); // Also deletes the zoomDisplay
 
     Graph * g = new Graph();
     BasicGraphs * basicG = new BasicGraphs();

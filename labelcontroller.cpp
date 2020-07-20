@@ -35,7 +35,7 @@ LabelController::LabelController(Edge * anEdge, QLineEdit * anEdit)
         connect(edit, SIGNAL(textChanged(QString)),
                 this, SLOT(setEdgeLabel(QString)));
         connect(edge->htmlLabel->document(), SIGNAL(contentsChanged()),
-                this, SLOT(setEditLabel1()));
+                this, SLOT(setEdgeEditLabel()));
         connect(anEdge, SIGNAL(destroyed(QObject*)),
                 this, SLOT(deletedLineEdit()));
         connect(anEdge, SIGNAL(destroyed(QObject*)),
@@ -57,7 +57,7 @@ LabelController::LabelController(Node * aNode, QLineEdit * anEdit)
         connect(edit, SIGNAL(textChanged(QString)),
                 this, SLOT(setNodeLabel(QString)));
         connect(node->htmlLabel->document(), SIGNAL(contentsChanged()),
-                this, SLOT(setEditLabel2()));
+                this, SLOT(setNodeEditLabel()));
         connect(aNode, SIGNAL(destroyed(QObject*)),
                 this, SLOT(deletedLineEdit()));
         connect(aNode, SIGNAL(destroyed(QObject*)),
@@ -86,7 +86,7 @@ LabelController::setNodeLabel(QString string)
 
 
 void
-LabelController::setEditLabel1()
+LabelController::setEdgeEditLabel()
 { // Sets the line edit text to u1 instead of u_{1} for subscripts.
     if (edge->htmlLabel->hasFocus())
         edit->setText(edge->htmlLabel->toPlainText());
@@ -94,7 +94,7 @@ LabelController::setEditLabel1()
 
 
 void
-LabelController::setEditLabel2()
+LabelController::setNodeEditLabel()
 { // Sets the line edit text to u1 instead of u_{1} for subscripts.
     if (node->htmlLabel->hasFocus())
         edit->setText(node->htmlLabel->toPlainText());

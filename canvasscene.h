@@ -44,6 +44,7 @@ public:
 
 signals:
     void graphDropped(Graph * graph);
+    void graphJoined();
 
 protected:
     void dragMoveEvent (QGraphicsSceneDragDropEvent * event);

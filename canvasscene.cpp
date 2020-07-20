@@ -151,11 +151,14 @@ CanvasScene::mousePressEvent(QGraphicsSceneMouseEvent * event)
 {
     qDeb() << "CS::mousePressEvent(" << event->screenPos() << ")";
 
+    bool foundNode = false;
+    bool foundLabel = false;
+
     if (itemAt(event->scenePos(), QTransform()) != nullptr)
     {
         QList<QGraphicsItem *> itemList
 	    = items(event->scenePos(), Qt::IntersectsItemShape,
-		    Qt::AscendingOrder, QTransform());
+		    Qt::DescendingOrder, QTransform());
 
         switch (getMode())
         {
@@ -300,10 +303,17 @@ CanvasScene::mousePressEvent(QGraphicsSceneMouseEvent * event)
 	    foreach (QGraphicsItem * item, itemList)
 	    {
 		qDeb() << "\titem type is " << item->type();
-		if (item->type() == Node::Type)
+		if (event->button() == Qt::LeftButton)
 		{
-		    if (event->button() == Qt::LeftButton)
+		    if (item->type() == HTML_Label::Type && !foundLabel)
 		    {
+			foundLabel = true;
+			qDeb() << "\tLeft button over a label";
+			item->setFocus();
+		    }
+		    else if (item->type() == Node::Type && !foundNode)
+		    {
+			foundNode = true;
 			qDeb() << "\tLeft button over a node";
 			mDragged = qgraphicsitem_cast<Node*>(item);
 			undoPos->node = qgraphicsitem_cast<Node *>(mDragged);
@@ -317,11 +327,10 @@ CanvasScene::mousePressEvent(QGraphicsSceneMouseEvent * event)
 			}
 		    }
 		}
-
 	    }
-	    if (mDragged != nullptr)
+	    /*if (mDragged != nullptr)
 		if (mDragged->type() == Node::Type)
-		    QGraphicsScene::mousePressEvent(event);
+		    QGraphicsScene::mousePressEvent(event);*/
 	    break;
 
 	  case CanvasView::drag:
@@ -515,7 +524,7 @@ CanvasScene::keyReleaseEvent(QKeyEvent * event)
 	    && connectNode1b != nullptr && connectNode2b != nullptr)
 	{
 	    qDeb() << "CS:keyReleaseEvent('j'); four selected nodes case";
-	    if (connectNode1a->parentItem() != nullptr
+	    if (connectNode1a->parentItem() != nullptr // Useless if statement?
 		&& connectNode2a != nullptr
 		&& connectNode1b != nullptr && connectNode2b != nullptr)
 	    {
@@ -605,7 +614,28 @@ CanvasScene::keyReleaseEvent(QKeyEvent * event)
 		{
 		    int count = 0;
 
-		    foreach (QGraphicsItem * i, root1->childItems())
+		    QList<QGraphicsItem *> list1;
+		    foreach (QGraphicsItem * gItem, root1->childItems())
+			if (gItem->type() == Node::Type ||
+				gItem->type() == Graph::Type)
+			    list1.append(gItem);
+
+		    bool noGraphs = false;
+		    while (!noGraphs)
+		    {
+			noGraphs = true;
+			foreach (QGraphicsItem * i, list1)
+			{
+			    if (i->type() == Graph::Type)
+			    {
+				noGraphs = false;
+				list1.append(i->childItems());
+				list1.removeOne(i);
+			    }
+			}
+		    }
+
+		    foreach (QGraphicsItem * i, list1)
 		    {
 			if (i->type() == Node::Type)
 			{
@@ -615,7 +645,28 @@ CanvasScene::keyReleaseEvent(QKeyEvent * event)
 			}
 		    }
 
-		    foreach (QGraphicsItem * i, root2->childItems())
+		    QList<QGraphicsItem *> list2;
+		    foreach (QGraphicsItem * gItem, root2->childItems())
+			if (gItem->type() == Node::Type ||
+				gItem->type() == Graph::Type)
+			    list2.append(gItem);
+
+		    noGraphs = false;
+		    while (!noGraphs)
+		    {
+			noGraphs = true;
+			foreach (QGraphicsItem * i, list2)
+			{
+			    if (i->type() == Graph::Type)
+			    {
+				noGraphs = false;
+				list2.append(i->childItems());
+				list2.removeOne(i);
+			    }
+			}
+		    }
+
+		    foreach (QGraphicsItem * i, list2)
 		    {
 			if (i->type() == Node::Type
 			    && i != connectNode2a && i != connectNode2b)
@@ -645,6 +696,8 @@ CanvasScene::keyReleaseEvent(QKeyEvent * event)
 
 		connectNode2a = nullptr;
 		connectNode2b = nullptr;
+
+		emit graphJoined();
 	    }
 	}
 	else if (connectNode1a != nullptr && connectNode2a != nullptr)
@@ -703,17 +756,59 @@ CanvasScene::keyReleaseEvent(QKeyEvent * event)
 	    {
 		qDeb() << "\tn1 has a numeric label, renumber all nodes";
 		int count = 0;
-		foreach (QGraphicsItem * i, root1->childItems())
+
+		QList<QGraphicsItem *> list1;
+		foreach (QGraphicsItem * gItem, root1->childItems())
+		    if (gItem->type() == Node::Type ||
+			    gItem->type() == Graph::Type)
+			list1.append(gItem);
+
+		bool noGraphs = false;
+		while (!noGraphs)
+		{
+		    noGraphs = true;
+		    foreach (QGraphicsItem * i, list1)
+		    {
+			if (i->type() == Graph::Type)
+			{
+			    noGraphs = false;
+			    list1.append(i->childItems());
+			    list1.removeOne(i);
+			}
+		    }
+		}
+
+		foreach (QGraphicsItem * i, list1)
 		{
 		    qDeb() << "\ta root1 child of type " << i->type();
 		    if (i->type() == Node::Type)
 		    {
 			Node * node = qgraphicsitem_cast<Node*>(i);
-
 			node->setNodeLabel(count++);
 		    }
 		}
-		foreach (QGraphicsItem * i, root2->childItems())
+
+		QList<QGraphicsItem *> list2;
+		foreach (QGraphicsItem * gItem, root2->childItems())
+		    if (gItem->type() == Node::Type ||
+			    gItem->type() == Graph::Type)
+			list2.append(gItem);
+
+		noGraphs = false;
+		while (!noGraphs)
+		{
+		    noGraphs = true;
+		    foreach (QGraphicsItem * i, list2)
+		    {
+			if (i->type() == Graph::Type)
+			{
+			    noGraphs = false;
+			    list2.append(i->childItems());
+			    list2.removeOne(i);
+			}
+		    }
+		}
+		foreach (QGraphicsItem * i, list2)
 		{
 		    qDeb() << "\ta root2 child of type " << i->type();
 		    if (i->type() == Node::Type && i != connectNode2a)
@@ -735,6 +830,8 @@ CanvasScene::keyReleaseEvent(QKeyEvent * event)
 	    delete connectNode2a;
 	    connectNode2a = nullptr;
 	    connectNode1a->chosen(0);
+
+	    emit graphJoined();
 	}
 
 	if (connectNode1a)
