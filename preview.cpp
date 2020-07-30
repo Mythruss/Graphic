@@ -2,7 +2,7 @@
  * File:    preview.cpp
  * Author:  Rachel Bood 100088769
  * Date:    2014/11/07
- * Version: 1.9
+ * Version: 1.10
  *
  * Purpose: Initializes a QGraphicsView that is used to house the QGraphicsScene
  *
@@ -60,6 +60,9 @@
  *      thickness of nodes.
  *  (b) Fixed keyPressEvent to require Ctrl+ and Ctrl- to zoom out/in instead
  *      of just + and - keys.
+ * July 7, 2020 (IC V1.10)
+ *  (a) Updated scaleView to accomodate for the new visible zoomDisplay on the
+ *      preview pane ui.
  */
 
 #include "basicgraphs.h"
@@ -331,7 +334,7 @@ PreView::Create_Basic_Graph(int graphType, int numOfNodes1, int numOfNodes2,
 	   << this->scene()->items().size() << " items";
 
     // We are making a new graph: away with the old one.
-    this->scene()->clear(); // Also deletes the zoomDisplay
+    this->scene()->clear();
 
     Graph * g = new Graph();
     BasicGraphs * basicG = new BasicGraphs();

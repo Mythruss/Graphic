@@ -107,6 +107,7 @@ class Node : public QGraphicsObject
     // ~Node();
 
     HTML_Label * htmlLabel;
+    int checked;
 
   public slots:
     void setNodeLabel();
@@ -117,6 +118,7 @@ class Node : public QGraphicsObject
     void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
     void paint(QPainter * painter, const QStyleOptionGraphicsItem * option,
 	       QWidget * widget);
+    bool eventFilter(QObject *obj, QEvent *event);
 
   signals:
     //void nodeDeleted(); // Should be removed? Never used.

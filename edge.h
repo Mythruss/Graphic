@@ -99,6 +99,7 @@ public:
 
     HTML_Label * htmlLabel;
     int causedConnect;
+    int checked;
 
 public slots:
     void setEdgeLabel();
@@ -106,6 +107,7 @@ public slots:
 protected:
     void paint(QPainter * painter, const QStyleOptionGraphicsItem * option,
                QWidget * widget);
+    bool eventFilter(QObject *obj, QEvent *event);
 
 signals:
     //void edgeDeleted(); // Should be removed? Never used.
@@ -118,6 +120,7 @@ private:
     qreal	destRadius, sourceRadius, rotation;
     QLineF	edgeLine;
     QString	label;
+    int         penStyle;
     qreal	labelSize, penSize;
     QColor	edgeColour;
 };

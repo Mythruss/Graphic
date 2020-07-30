@@ -1,3 +1,17 @@
+/*
+ * File:    graph.cpp
+ * Author:  Rachel Bood
+ * Date:    2014/11/07 (?)
+ * Version: 1.1
+ *
+ * Purpose:
+ *
+ * Modification history:
+ * July 20, 2020 (IC V1.1)
+ *  (a) Fixed setRotation to properly rotate graph items while taking into
+ *      account their previous rotation value.
+ */
+
 #include "graph.h"
 #include "canvasview.h"
 #include "node.h"
@@ -128,39 +142,29 @@ void Graph::setRotation(qreal aRotation)
 {
     QList<QGraphicsItem *> list;
     foreach (QGraphicsItem * gItem, this->childItems())
-    {
         list.append(gItem);
-    }
 
-    bool noGraphs = false;
-    while (!noGraphs)
+    while (!list.isEmpty())
     {
-        noGraphs = true;
-        foreach (QGraphicsItem * i, list)
+        foreach (QGraphicsItem * child, list)
         {
-            if (i->type() == Graph::Type)
+            if (child != nullptr || child != 0)
             {
-                noGraphs = false;
-                foreach(QGraphicsItem * children, i->childItems())
-                    list.append(children);
-                list.removeAt(list.indexOf(i));
-            }
-        }
-    }
-
-    foreach (QGraphicsItem * child, list)
-    {
-        if (child != nullptr || child != 0)
-        {
-            if (child->type() == Node::Type)
-            {
-                Node * node = qgraphicsitem_cast<Node*>(child);
-                node->setRotation(-aRotation);
-            }
-            else if(child->type() == Edge::Type)
-            {
-                Edge * edge = qgraphicsitem_cast<Edge*>(child);
-                edge->setRotation(-aRotation);
+                if (child->type() == Graph::Type)
+                {
+                    list.append(child->childItems());
+                }
+                else if (child->type() == Node::Type)
+                {
+                    Node * node = qgraphicsitem_cast<Node*>(child);
+                    node->setRotation(node->getRotation() + -aRotation);
+                }
+                else if(child->type() == Edge::Type)
+                {
+                    Edge * edge = qgraphicsitem_cast<Edge*>(child);
+                    edge->setRotation(edge->getRotation() + -aRotation);
+                }
+                list.removeOne(child);
             }
         }
     }
@@ -180,7 +184,7 @@ void Graph::setRotation(qreal aRotation)
  */
 QGraphicsItem *Graph::getRootParent()
 {
-    QGraphicsItem * parent = this->parentItem();
+    QGraphicsItem * parent = this;
     while (parent != nullptr || parent != 0)
         parent = parent->parentItem();
     return parent;

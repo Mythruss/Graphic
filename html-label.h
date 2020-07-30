@@ -26,6 +26,7 @@
 #define HTML_LABEL_H
 
 #include <QGraphicsTextItem>
+#include <QLabel>
 
 class HTML_Label : public QGraphicsTextItem
 {
@@ -38,10 +39,12 @@ public:
 
     void setHtmlLabel(QString string);
     static QString strToHtml(QString str);
+    QLabel * editTabLabel;
 
 protected:
     void paint(QPainter * painter, const QStyleOptionGraphicsItem * option,
 	       QWidget * widget);
+    bool eventFilter(QObject *obj, QEvent *event);
 
 private:
     QString htmlLabelText;

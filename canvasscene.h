@@ -3,7 +3,7 @@
  * File:	canvasscene.h
  * Author:	Rachel Bood
  * Date:	?
- * Version:	1.2
+ * Version:	1.3
  *
  * Purpose:
  *
@@ -14,6 +14,8 @@
  *  (a) Remove unused private var numOfNodes.
  * June 19, 2020 (IC V1.2)
  *  (a) Added graphDropped() signal to tell mainWindow to update the edit tab.
+ * July 9, 2020 (IC V1.3)
+ *  (a) Added graphJoined() signal to tell mainWindow to update the edit tab.
  */
 
 #ifndef CANVASSCENE_H
@@ -41,10 +43,12 @@ public:
     void getConnectionNodes();
     int getMode() const;
     void setCanvasMode(int mode);
+    void searchAndSeparate(QList<Node *> adjacentNodes);
 
 signals:
     void graphDropped(Graph * graph);
     void graphJoined();
+    void itemDeleted();
 
 protected:
     void dragMoveEvent (QGraphicsSceneDragDropEvent * event);

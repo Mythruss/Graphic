@@ -13,7 +13,7 @@
  *  - Changed setNodeLabel() to properly check if node is null or 0 instead
  *    of edge.
  * June 18, 2020 (IC, V1.3)
- *  - Added setEdgeLabel2() and setNodeLabel2() for updating the edit tab
+ *  - Added setEdgeEditLabel() and setNodeEditLabel() for updating the edit tab
  *    labels when labels are changed via edit mode on the canvas.
  *  - Added extra connect statements to handle those edit events.
  * June 19, 2020 (IC, V1.4)

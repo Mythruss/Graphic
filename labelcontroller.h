@@ -12,7 +12,7 @@
  *  Nov 13, 2019 (JD, V1.2)
  *   - Fix incorrect #ifndef string.
  *  June 18, 2020 (IC, V1.3)
- *   - Added setEdgeLabel2() and setNodeLabel2() for updating the edit tab
+ *   - Added setEdgeEditLabel() and setNodeEditLabel() for updating the edit tab
  *     line edits when labels are changed via edit mode on the canvas.
  */
 
@@ -24,6 +24,7 @@
 
 #include <QLineEdit>
 #include <QObject>
+#include <QGraphicsItem>
 
 class LabelController: public QObject
 {

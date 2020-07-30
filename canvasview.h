@@ -77,6 +77,7 @@ class CanvasView: public QGraphicsView
 
     public slots:
 	void snapToGrid(bool snap);
+	void clearCanvas();
 
   signals:
 	void setKeyStatusLabelText(QString text);

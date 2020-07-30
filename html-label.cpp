@@ -77,8 +77,28 @@ HTML_Label::HTML_Label(QGraphicsItem * parent)
 	       - boundingRect().width() / 2.,
                parentItem()->boundingRect().center().y()
 	       - boundingRect().height() / 2.);
+
+    editTabLabel = nullptr;
+    installEventFilter(this);
 }
 
+bool
+HTML_Label::eventFilter(QObject *obj, QEvent *event)
+{
+    if (event->type() == QEvent::FocusIn)
+    {
+        QFont font = editTabLabel->font();
+        font.setBold(true);
+        editTabLabel->setFont(font);
+    }
+    else if (event->type() == QEvent::FocusOut)
+    {
+        QFont font = editTabLabel->font();
+        font.setBold(false);
+        editTabLabel->setFont(font);
+    }
+    return QObject::eventFilter(obj, event);
+}
 
 
 // Is this function ever called??

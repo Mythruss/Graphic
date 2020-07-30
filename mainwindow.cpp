@@ -2,7 +2,7 @@
  * File:	mainwindow.cpp
  * Author:	Rachel Bood
  * Date:	January 25, 2015.
- * Version:	1.37
+ * Version:	1.41
  *
  * Purpose:	Implement the main window and functions called from there.
  *
@@ -242,6 +242,18 @@
  *  (a) Added another connection to update the preview and params when node
  *      thickness is adjusted.
  *  (b) Updated set_Font_Sizes() to include the new thickness widgets.
+ * July 7, 2020 (IC V1.38)
+ *  (a) Added another connection to update the zoomDisplay after a zoom change.
+ * July 9, 2020 (IC V1.39)
+ *  (a) Added another connection to update the edit tab after two graphs were
+ *      joined.
+ *  (b) Fixed a bug that allowed labels to be focusable on the preview pane.
+ * July 14, 2020 (IC V1.40)
+ *  (a) Corrected an issue that was preventing custom graphs from being
+ *      refreshed on the preview after being dropped onto the canvas.
+ * July 15, 2020 (IC V1.41)
+ *  (a) Added node thickness widgets to the edit tab so that both node penwidth
+ *      and diameter can be changed after leaving the preview pane.
  */
 
 #include "mainwindow.h"
@@ -474,7 +486,9 @@ QMainWindow(parent),
     connect(ui->canvas, SIGNAL(nodeCreated(Node*)),
 	    this, SLOT(updateEditTab()));
     connect(ui->canvas, SIGNAL(edgeCreated(Edge*)),
-	    this, SLOT(updateEditTab()));
+            this, SLOT(updateEditTab()));
+    connect(ui->canvas->scene(), SIGNAL(itemDeleted()),
+            this, SLOT(updateEditTab()));
 
     /*connect(ui->canvas->scene(), SIGNAL(graphDropped(Graph*)),
             this, SLOT(addGraphToEditTab(Graph*)));
@@ -486,11 +500,15 @@ QMainWindow(parent),
     // Adds a new graph to the preview pane when the previous is dropped onto
     // the canvas.
     connect(ui->canvas->scene(), SIGNAL(graphDropped(Graph*)),
-	    this, SLOT(generate_Graph()));
+            this, SLOT(generate_Graph()));
 
     // Updates the zoomDisplay after zoomIn/zoomOut is called
     connect(ui->preview, SIGNAL(zoomChanged(QString)),
             ui->zoomDisplay, SLOT(setText(QString)));
+
+    // Clears all items from the canvas
+    connect(ui->clearCanvas, SIGNAL(clicked()),
+            ui->canvas, SLOT(clearCanvas()));
 
     // Initialize the canvas to be in "drag" mode.
     ui->dragMode_radioButton->click();
@@ -2841,9 +2859,11 @@ MainWindow::updateEditTab(int index)
 
 				      QLabel * label = new QLabel("Node");
 				      // When this node is deleted, also
-				      // delete its label in the edit tab.
+				      // delete its label in the edit tab.d
 				      connect(node, SIGNAL(destroyed(QObject*)),
 					      label, SLOT(deleteLater()));
+
+				      node->htmlLabel->editTabLabel = label;
 
 				      QDoubleSpinBox * diamBox
 					  = new QDoubleSpinBox();
@@ -2858,6 +2878,11 @@ MainWindow::updateEditTab(int index)
 
 				      QSpinBox * fontSizeBox
 					  = new QSpinBox();
+
+				      nodeEdit->installEventFilter(node);
+				      diamBox->installEventFilter(node);
+				      thicknessBox->installEventFilter(node);
+				      fontSizeBox->installEventFilter(node);
 
 				      // All controllers handle deleting of widgets
 				      SizeController * sizeController
@@ -2892,7 +2917,7 @@ MainWindow::updateEditTab(int index)
 				  {
 				      Edge * edge
 					  = qgraphicsitem_cast<Edge*>(gItem);
-				      QLineEdit * editEdge = new QLineEdit();
+				      QLineEdit * edgeEdit = new QLineEdit();
 				      // Q: what were these for??
 				      // editEdge->setText("Edge\n");
 				      // gridLayout->addWidget(editEdge);
@@ -2903,11 +2928,20 @@ MainWindow::updateEditTab(int index)
 				      connect(edge, SIGNAL(destroyed(QObject*)),
 					      label, SLOT(deleteLater()));
 
-				      QPushButton * button = new QPushButton();
+				      edge->htmlLabel->editTabLabel = label;
+
+				      QPushButton * button
+					  = new QPushButton();
+
 				      QDoubleSpinBox * sizeBox
 					  = new QDoubleSpinBox();
+
 				      QSpinBox * fontSizeBox
 					  = new QSpinBox();
+
+				      edgeEdit->installEventFilter(edge);
+				      sizeBox->installEventFilter(edge);
+				      fontSizeBox->installEventFilter(edge);
 
 				      // All controllers handle deleting of widgets
 				      SizeController * sizeController
@@ -2915,14 +2949,14 @@ MainWindow::updateEditTab(int index)
 				      ColorLineController * colorController
 					  = new ColorLineController(edge, button);
 				      LabelController * weightController
-					  = new LabelController(edge, editEdge);
+					  = new LabelController(edge, edgeEdit);
 				      LabelSizeController * weightSizeController
 					  = new LabelSizeController(edge,
 								    fontSizeBox);
 
 				      gridLayout->addWidget(label, i, 1);
 				      gridLayout->addWidget(sizeBox, i, 2);
-				      gridLayout->addWidget(editEdge, i, 4);
+				      gridLayout->addWidget(edgeEdit, i, 4);
 				      gridLayout->addWidget(fontSizeBox, i, 5);
 				      gridLayout->addWidget(button, i, 6);
 				      Q_UNUSED(sizeController);
@@ -2932,6 +2966,7 @@ MainWindow::updateEditTab(int index)
 				      i++;
 				  }
 			      }
+			      list.removeFirst();
 			  }
 		      }
 		  }
@@ -2977,7 +3012,6 @@ MainWindow::updateEditTab(int index)
 	break;
     }
 }
-
 
 /*
  * Name:	addGraphToEditTab()

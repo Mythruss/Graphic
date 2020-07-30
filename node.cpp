@@ -115,10 +115,12 @@ Node::Node()
     select = false;		    // TODO: is 'select' of any use?
     QScreen * screen = QGuiApplication::primaryScreen();
     physicalDotsPerInchX = screen->physicalDotsPerInchX();
+    checked = 0;
 
     connect(htmlLabel->document(), SIGNAL(contentsChanged()),
             this, SLOT(setNodeLabel()));
 }
+
 
 /*
  * Name:        addEdge
@@ -162,7 +164,6 @@ bool Node::removeEdge(Edge * edge)
             return true;
         }
     }
-
     return false;
 }
 
@@ -898,7 +899,7 @@ Node::itemChange(GraphicsItemChange change, const QVariant &value)
                 Graph * tempGraph = graph;
                 graph = qgraphicsitem_cast<Graph*>(graph->getRootParent());
                 this->setParentItem(nullptr);
-                this->setParentItem(tempGraph);
+                this->setParentItem(tempGraph); // ???????????
             }
 	    else
 		qDeb() << "itemChange(): node does not have a "
@@ -959,6 +960,33 @@ Node::mouseReleaseEvent(QGraphicsSceneMouseEvent * event)
 
     select = false;
     QGraphicsItem::mouseReleaseEvent(event);
+}
+
+
+
+/*
+ * Name:        eventFilter()
+ * Purpose:     Intercepts events related to edit tab widgets so
+ *              we can identify the node being edited.
+ * Arguments:
+ * Output:
+ * Modifies:
+ * Returns:
+ * Assumptions:
+ */
+
+bool
+Node::eventFilter(QObject *obj, QEvent *event)
+{
+    if (event->type() == QEvent::FocusIn)
+    {
+        chosen(2);
+    }
+    else if (event->type() == QEvent::FocusOut)
+    {
+        chosen(0);
+    }
+    return QObject::eventFilter(obj, event);
 }
 
 

@@ -1,3 +1,19 @@
+/*
+ * File:    sizecontroller.cpp
+ * Author:  Rachel Bood
+ * Date:    2014/11/07 (?)
+ * Version: 1.1
+ *
+ * Purpose: ?
+ *
+ * Modification history:
+ * July 15, 2020 (IC V1.1)
+ *  (a) Updated the node sizecontroller to take two spinboxes as parameters,
+ *      one for node penwidth (thickness) and the other for node diameter.
+ *  (b) Added setNodeSize2 to handle the new thickness box and a node specific
+ *      delete function to delete both boxes.
+ */
+
 #include "sizecontroller.h"
 
 

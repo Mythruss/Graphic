@@ -2,7 +2,7 @@
  * File:    preview.h
  * Author:  Rachel Bood 100088769
  * Date:    2014/11/07 (?)
- * Version: 1.4
+ * Version: 1.5
  *
  * Purpose: define the fields of the preview class.
  *
@@ -27,6 +27,8 @@
  * July 3, 2020 (IC V1.4)
  *  (a) Added nodeThickness param to Style_Graph() to allow adjusting
  *      thickness of nodes.
+ * July 7, 2020 (IC V1.5)
+ *  (a) Added zoomChanged signal to tell the mainwindow to update zoomDisplay.
  */
 
 #ifndef PREVIEW_H
@@ -37,7 +39,6 @@
 
 #include <QGraphicsView>
 #include <QGraphicsSceneMouseEvent>
-#include <QLabel>
 
 
 class PreView: public QGraphicsView
