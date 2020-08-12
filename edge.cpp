@@ -2,7 +2,7 @@
  * File:    edge.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.10
+ * Version: 1.11
  *
  * Purpose: creates an edge for the users graph
  *
@@ -61,6 +61,11 @@
  *      update label when changes are made on the canvas in edit mode.
  * July 9, 2020 (IC V1.10)
  *  (a) Corrected the painter to reposition the label whenever an edge moves.
+ * July 29, 2020 (IC V1.11)
+ *  (a) Added penStyle variable to change the edge's pen style, like what is
+ *      done in node.cpp.
+ *  (b) Added eventFilter() to receive edit tab events so we can identify
+ *      the edge being edited/looked at.
  */
 
 #include "edge.h"
@@ -204,8 +209,8 @@ Edge::editLabel(bool edit)
 QGraphicsItem *
 Edge::getRootParent()
 {
-    QGraphicsItem * parent = this->parentItem();
-    while (parent != nullptr)
+    QGraphicsItem * parent = this;
+    while (parent->parentItem() != nullptr || parent->parentItem() != 0)
         parent = parent->parentItem();
     return parent;
 }
@@ -818,6 +823,8 @@ Edge::paint(QPainter * painter, const QStyleOptionGraphicsItem * option,
  * Modifies:
  * Returns:
  * Assumptions:
+ * Bugs:
+ * Notes:       Try using QEvent::HoverEnter and QEvent::HoverLeave
  */
 
 bool

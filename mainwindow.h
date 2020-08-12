@@ -57,6 +57,8 @@
 
 #include "defuns.h"
 #include "graph.h"
+#include "settingsdialog.h"
+#include "ui_settingsdialog.h"
 
 namespace Ui
 {
@@ -113,9 +115,8 @@ class MainWindow : public QMainWindow
     void updateEditTab(int index);
     void updateEditTab();
 
-    void addGraphToEditTab(Graph * graph);
-    void addNodeToEditTab(Node * node);
-    void addEdgeToEditTab(Edge * edge);
+    void somethingChanged();
+    void updateDpiAndPreview();
 
 private:
     void loadSettings();
@@ -127,6 +128,8 @@ private:
     QGridLayout * gridLayout;
     QScrollArea * scroll;
     QList<Graph *> graphList;
+    bool promptSave = false;
+    SettingsDialog * settingsDialog;
 };
 
 #endif // MAINWINDOW_H

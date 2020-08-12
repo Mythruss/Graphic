@@ -2,7 +2,7 @@
  * File:    canvasscene.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.13
+ * Version: 1.14
  *
  * Purpose: Initializes a QGraphicsScene to implement a drag and drop feature.
  *          still very much a WIP
@@ -54,8 +54,14 @@
  * July 17, 2020 (IC V1.12)
  *  (a) Corrected keyReleaseEvent to properly renumber the newly joined graph
  *      if the initial label selected contained only a number.
- * July 20, 2020 (IC V1.13)
- *  (a) Further cleaned up keyReleaseEvent...
+ * July 23, 2020 (IC V1.13)
+ *  (a) Added searchAndSeparate() function to determine if a graph needs to be
+ *      split into individual graphs following a node/edge deletion.
+ * July 30, 2020 (IC V1.14)
+ *  (a) (Partially) Removed the graph recursion from keyReleaseEvent. Children
+ *      of the two graphs are now reassigned to a singular graph and the old
+ *      graph objects are deleted, atleast in the case of 2 nodes selected!
+ *      4 nodes selected is still WIP, as it messes up the rotations somehow.
  */
 
 #include "canvasscene.h"
@@ -131,7 +137,7 @@ CanvasScene::dropEvent(QGraphicsSceneDragDropEvent * event)
         addItem(graphItem);
         graphItem->isMoved();
         clearSelection();
-        emit graphDropped(graphItem);
+        emit graphDropped();
     }
 }
 
@@ -192,7 +198,8 @@ CanvasScene::mousePressEvent(QGraphicsSceneMouseEvent * event)
 			parent1 = connectNode1a->findRootParent();
 			parent2 = connectNode1b->findRootParent();
 
-			if (parent2 == parent1)
+			if (parent2 == parent1
+				&& connectNode1a != connectNode1b)
 			{
 			    connectNode1b->chosen(2);
 			    break;
@@ -221,7 +228,8 @@ CanvasScene::mousePressEvent(QGraphicsSceneMouseEvent * event)
 			parent1 = connectNode2a->findRootParent();
 			parent2 = connectNode2b->findRootParent();
 
-			if (parent2 == parent1)
+			if (parent2 == parent1
+				&& connectNode2a != connectNode2b)
 			{
 			    connectNode2b->chosen(2);
 			    break;
@@ -265,6 +273,7 @@ CanvasScene::mousePressEvent(QGraphicsSceneMouseEvent * event)
 				if (!adjacentNodes.contains(edge->destNode())
 					&& edge->destNode() != node)
 				    adjacentNodes.append(edge->destNode());
+
 				else if (!adjacentNodes.contains(edge->sourceNode())
 					 && edge->sourceNode() != node)
 				    adjacentNodes.append(edge->sourceNode());
@@ -304,6 +313,7 @@ CanvasScene::mousePressEvent(QGraphicsSceneMouseEvent * event)
 			    }
 			    parent = tempParent;
 			}
+			emit somethingChanged();
 			break;
 		    }
 		    else if (item->type() == Edge::Type)
@@ -324,6 +334,7 @@ CanvasScene::mousePressEvent(QGraphicsSceneMouseEvent * event)
 
 			delete edge;
 			edge = nullptr;
+			emit somethingChanged();
 			break;
 		    }
 		}
@@ -466,6 +477,9 @@ CanvasScene::mouseReleaseEvent(QGraphicsSceneMouseEvent * event)
 	    mDragged->setPos(x , y);
         }
         moved = false;
+
+        if (getMode() == CanvasView::edit)
+            emit somethingChanged();
     }
     mDragged = nullptr;
     clearSelection();
@@ -501,6 +515,8 @@ CanvasScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event)
 		  removeItem(graph);
 		  delete graph;
 		  graph = nullptr;
+
+		  emit somethingChanged();
 	      }
 	  }
 	  break;
@@ -544,18 +560,18 @@ CanvasScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event)
 void
 CanvasScene::keyReleaseEvent(QKeyEvent * event)
 {
-    //QPointF itemPos;
+    QPointF itemPos;
     switch (event->key())
     {
       case Qt::Key_J:
 	qDeb() << "CS:keyReleaseEvent('j')";
 
-	Graph * item;
+	Graph * newRoot;
 	Graph * root1;
 	Graph * root2;
 
-	item = new Graph();
-	item->isMoved();
+	newRoot = new Graph();
+	newRoot->isMoved();
 	root1 = nullptr;
 	root2 = nullptr;
 
@@ -687,9 +703,23 @@ CanvasScene::keyReleaseEvent(QKeyEvent * event)
 		    }
 		}
 
-		root2->setParentItem(item);
-		root1->setParentItem(item);
-		addItem(item);
+                /*foreach (QGraphicsItem * item, root1->childItems())
+                {
+                    itemPos = item->scenePos(); // MUST BE scenePos(), NOT pos()
+                    item->setParentItem(newRoot);
+                    item->setPos(itemPos);
+                }
+
+                foreach (QGraphicsItem * item, root2->childItems())
+                {
+                    itemPos = item->scenePos(); // MUST BE scenePos(), NOT pos()
+                    item->setParentItem(newRoot);
+                    item->setPos(itemPos);
+                }*/
+
+		root2->setParentItem(newRoot);
+		root1->setParentItem(newRoot);
+		addItem(newRoot);
 
 		// Dispose of unneeded nodes
 		connectNode2a->setParentItem(nullptr);
@@ -801,15 +831,36 @@ CanvasScene::keyReleaseEvent(QKeyEvent * event)
                 else
                     qDeb() << "\tn1 has a NON-numeric label, DON'T renumber nodes";
 
-                root2->setParentItem(item);
-                root1->setParentItem(item);
-                addItem(item);
+                foreach (QGraphicsItem * item, root1->childItems())
+                {
+                    itemPos = item->scenePos(); // MUST BE scenePos(), NOT pos()
+                    item->setParentItem(newRoot);
+                    item->setPos(itemPos);
+                }
+
+                foreach (QGraphicsItem * item, root2->childItems())
+                {
+                    itemPos = item->scenePos(); // MUST BE scenePos(), NOT pos()
+                    item->setParentItem(newRoot);
+                    item->setPos(itemPos);
+                }
+
+                addItem(newRoot);
 
                 // Properly dispose of unneeded node
                 removeItem(connectNode2a);
                 delete connectNode2a;
                 connectNode2a = nullptr;
                 connectNode1a->chosen(0);
+
+                // Dispose of old roots
+                removeItem(root1);
+                delete root1;
+                root1 = nullptr;
+
+                removeItem(root2);
+                delete root2;
+                root2 = nullptr;
 
 		emit graphJoined();
 	    }
@@ -847,6 +898,8 @@ CanvasScene::keyReleaseEvent(QKeyEvent * event)
 	{
 	    undoPositions.last()->node->setPos(undoPositions.last()->pos);
 	    undoPositions.removeLast();
+
+	    emit somethingChanged();
 	}
 
       default:
@@ -1037,5 +1090,5 @@ CanvasScene::searchAndSeparate(QList<Node *> Nodes)
         j = i + 1;
     }
     if (graphAdded)
-        emit itemDeleted();
+        emit graphSeparated();
 }

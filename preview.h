@@ -71,6 +71,7 @@ class PreView: public QGraphicsView
     virtual void keyPressEvent(QKeyEvent * event);
     virtual void scaleView(qreal scaleFactor);
     virtual void mousePressEvent(QMouseEvent * event);
+    virtual void wheelEvent(QWheelEvent *event);
 
   private:
     QGraphicsScene * PV_Scene;

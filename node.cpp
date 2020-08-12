@@ -2,7 +2,7 @@
  * File:    node.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.11
+ * Version: 1.12
  *
  * Purpose: creates a node for the users graph
  *
@@ -66,6 +66,9 @@
  * July 3, 2020 (IC V1.11)
  *  (a) Added setter and getter for node pen width and updated the painter
  *      to allow user to change thickness of a node.
+ * July 29, 2020 (IC V1.12)
+ *  (a) Added eventFilter() to receive edit tab events so we can identify
+ *      the node being edited/looked at.
  */
 
 #include "defuns.h"
@@ -114,13 +117,15 @@ Node::Node()
     setHandlesChildEvents(true);
     select = false;		    // TODO: is 'select' of any use?
     QScreen * screen = QGuiApplication::primaryScreen();
-    physicalDotsPerInchX = screen->physicalDotsPerInchX();
+    if (settings.value("useDefaultResolution") == false)
+        physicalDotsPerInchX = settings.value("customResolution").toReal();
+    else
+        physicalDotsPerInchX = screen->physicalDotsPerInchX();
     checked = 0;
 
     connect(htmlLabel->document(), SIGNAL(contentsChanged()),
             this, SLOT(setNodeLabel()));
 }
-
 
 /*
  * Name:        addEdge
@@ -359,7 +364,7 @@ Node::getLineColour()
 QGraphicsItem *
 Node::findRootParent()
 {
-    QGraphicsItem * root = this->parentItem();
+    QGraphicsItem * root = this;
     while (root->parentItem() != 0 && root->parentItem() != nullptr)
         root = root->parentItem();
 
@@ -898,8 +903,8 @@ Node::itemChange(GraphicsItemChange change, const QVariant &value)
                 Graph * graph = qgraphicsitem_cast<Graph*>(parentItem());
                 Graph * tempGraph = graph;
                 graph = qgraphicsitem_cast<Graph*>(graph->getRootParent());
-                this->setParentItem(nullptr);
-                this->setParentItem(tempGraph); // ???????????
+                this->setParentItem(nullptr);  // ???????????
+                this->setParentItem(tempGraph);// Whats the point of this?
             }
 	    else
 		qDeb() << "itemChange(): node does not have a "
@@ -973,6 +978,8 @@ Node::mouseReleaseEvent(QGraphicsSceneMouseEvent * event)
  * Modifies:
  * Returns:
  * Assumptions:
+ * Bugs:
+ * Notes:       Try using QEvent::HoverEnter and QEvent::HoverLeave
  */
 
 bool

@@ -2,7 +2,7 @@
  * File:	html-label.cpp	    Formerly label.cpp
  * Author:	Rachel Bood
  * Date:	2014-??-??
- * Version:	1.4
+ * Version:	1.5
  * 
  * Purpose:	Implement the functions relating to node and edge labels.
  *		(Some places in the code use "weight" for "edge label".)
@@ -28,6 +28,9 @@
  *  (c) Fix some comments.
  * Nov 30, 2019 (JD V1.4)
  *  (a) Add qDeb() / #ifdef DEBUG jazz and a few debug outputs.
+ * July 29, 2020 (IC V1.5)
+ *  (a) Added eventFilter() to receive canvas events so we can identify
+ *      the node/edge being edited/looked at in the edit tab list.
  */
 
 #include "html-label.h"
@@ -81,6 +84,20 @@ HTML_Label::HTML_Label(QGraphicsItem * parent)
     editTabLabel = nullptr;
     installEventFilter(this);
 }
+
+
+/*
+ * Name:        eventFilter()
+ * Purpose:     Intercepts events related to canvas labels so we can
+ *              identify the location of the item on the edit tab.
+ * Arguments:
+ * Output:
+ * Modifies:
+ * Returns:
+ * Assumptions:
+ * Bugs:
+ * Notes:       Try using QEvent::HoverEnter and QEvent::HoverLeave
+ */
 
 bool
 HTML_Label::eventFilter(QObject *obj, QEvent *event)

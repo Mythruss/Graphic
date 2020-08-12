@@ -2,7 +2,7 @@
  * File:    canvasview.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.17
+ * Version: 1.19
  *
  * Purpose: Initializes a QGraphicsView that is used to house the
  *	    QGraphicsScene.
@@ -59,6 +59,14 @@
  * June 26, 2020 (IC V1.17)
  *  (a) Updated addEdgeToScene() to prevent additional root parents from being
  *      created if a root parent was previously created.
+ * July 23, 2020 (IC V1.18)
+ *  (a) Removed the graph recursion from addEdgeToScene. Children of the two
+ *      graphs are now reassigned to a singular graph and the old graph objects
+ *      are deleted.
+ * July 24, 2020 (IC V1.19)
+ *  (a) Added clearCanvas() function that removes all items from the canvas.
+ *  (b) Initialize modeType to 0 to prevent accidental deletion of nonexistant
+ *      freestyleGraph on startup.
  */
 
 #include "canvasview.h"
@@ -101,6 +109,11 @@ static const QString DRAG_DESCRIPTION =
     "Drag mode: Hold the mouse down over any part of a graph and move "
     "the mouse to drag that graph around the canvas.";
 
+// This is the factor by which the canvas is zoomed for each
+// zoom in or zoom out operation.
+#define SCALE_FACTOR    1.1
+static qreal zoomValue = 100;
+static QString zoomDisplayText = "Zoom: " + QString::number(zoomValue) + "%";
 
 
 /*
@@ -154,7 +167,8 @@ CanvasView::CanvasView(QWidget * parent)
 void
 CanvasView::setUpNodeParams(qreal nodeDiameter, bool numberedLabels,
 			    QString label, qreal nodeLabelSize,
-			    QColor nodeFillColour, QColor nodeOutLineColour)
+			    QColor nodeFillColour, QColor nodeOutLineColour,
+			    qreal nodeThickness)
 {
     qDeb() << "CV::setUpNodeParams(): nodeDiameter = " << nodeDiameter;
     qDeb() << "CV::setUpNodeParams(): nodeLabel = /" << label << "/";
@@ -168,6 +182,7 @@ CanvasView::setUpNodeParams(qreal nodeDiameter, bool numberedLabels,
     nodeParams->labelSize = nodeLabelSize;
     nodeParams->fillColour = nodeFillColour;
     nodeParams->outlineColour = nodeOutLineColour;
+    nodeParams->nodeThickness = nodeThickness;
 }
 
 
@@ -177,6 +192,7 @@ CanvasView::createNode(QPointF pos)
 {
     Node * node = new Node();
     node->setDiameter(nodeParams->diameter);
+    node->setPenWidth(nodeParams->nodeThickness);
     node->setNodeLabelSize(nodeParams->labelSize);
     node->setRotation(0);
     node->setFillColour(nodeParams->fillColour);
@@ -189,21 +205,114 @@ CanvasView::createNode(QPointF pos)
 
 
 /*
- * Name:        keyPressEvent()
- * Purpose:	?
- * Arguments:   A QKeyEvent.
+ * Name:        keyPressEvent
+ * Purpose:     Perform the appropriate action for known key presses.
+ * Arguments:   QKeyEvent
  * Output:      Nothing.
- * Modifies:    Nothing.
+ * Modifies:    The scale of the canvas window for the zoom operations.
  * Returns:     Nothing.
  * Assumptions: ?
  * Bugs:        ?
- * Notes:       ?
+ * Notes:       Unhandled key events are passed on to QGraphicsView.
  */
 
 void
 CanvasView::keyPressEvent(QKeyEvent * event)
 {
-    QGraphicsView::keyPressEvent(event);
+    qDeb() << "CV:keyPressEvent(" << event->key() << ") called.";
+
+    if (event->modifiers().testFlag(Qt::ControlModifier))
+    {
+        switch (event->key())
+        {
+          //case Qt::Key_Plus:
+          case Qt::Key_Equal:
+            zoomIn();
+            break;
+          //case Qt::Key_Underscore:
+          case Qt::Key_Minus:
+            zoomOut();
+            break;
+          default:
+            QGraphicsView::keyPressEvent(event);
+        }
+    }
+}
+
+
+/*
+ * Name:        wheelEvent
+ * Purpose:     Perform the appropriate action for wheel scroll.
+ * Arguments:   QWheelEvent
+ * Output:      Nothing.
+ * Modifies:    The scale of the canvas window for the zoom operations.
+ * Returns:     Nothing.
+ * Assumptions: ?
+ * Bugs:        ?
+ * Notes:       Unhandled key events are passed on to ...?
+ */
+
+void
+CanvasView::wheelEvent(QWheelEvent *event)
+{
+    qDeb() << "PV:wheelEvent(" << event->angleDelta() << ") called.";
+
+    if (event->modifiers().testFlag(Qt::ControlModifier))
+    {
+        if (event->angleDelta().y() > 0)
+            zoomIn();
+        else if (event->angleDelta().y() < 0)
+            zoomOut();
+    }
+}
+
+
+/*
+ * Name:        scaleView()
+ * Purpose:     Scales the view of the QGraphicsScene
+ * Arguments:   A qreal
+ * Output:      Nothing.
+ * Modifies:    The scale view of the QGraphicsScene
+ * Returns:     Nothing.
+ * Assumptions: None.
+ * Bugs:        ?
+ * Notes:       None.
+ */
+
+void
+CanvasView::scaleView(qreal scaleFactor)
+{
+    qDeb() << "CV::scaleView(" << scaleFactor << ") called";
+
+    qreal factor = transform().scale(scaleFactor, scaleFactor)
+                .mapRect(QRectF(0, 0, 1, 1)).width();
+    if (factor < 0.07 || factor > 10) // Why these values?
+        return;
+    scale(scaleFactor, scaleFactor);
+
+    // Determine how displayed zoom value needs to update
+    qreal afterFactor = transform().scale(scaleFactor, scaleFactor)
+            .mapRect(QRectF(0, 0, 1, 1)).width();
+    if (afterFactor > factor)
+        zoomValue = zoomValue*SCALE_FACTOR;
+    else
+        zoomValue = zoomValue/SCALE_FACTOR;
+
+    // Update and show the current zoom
+    zoomDisplayText = "Zoom: " + QString::number(zoomValue, 'f', 0) + "%";
+    emit zoomChanged(zoomDisplayText);
+}
+
+void
+CanvasView::zoomIn()
+{
+    scaleView(qreal(SCALE_FACTOR));
+}
+
+void
+CanvasView::zoomOut()
+{
+    scaleView(1. / qreal(SCALE_FACTOR));
 }
 
 
@@ -239,7 +348,7 @@ CanvasView::setMode(int m)
 
     if (lastModeType == mode::freestyle) // Deletes empty freestyle graph
     {
-        if (freestyleGraph  != nullptr)
+        if (freestyleGraph != nullptr)
         {
             if (freestyleGraph->childItems().isEmpty())
             {
@@ -317,7 +426,8 @@ CanvasView::mouseDoubleClickEvent(QMouseEvent * event)
       case mode::freestyle:
 	pt = mapToScene(event->pos());
 	qDeb() << "\tfreestyle mode: create a new node at " << pt;
-	emit nodeCreated(createNode(pt));
+	createNode(pt);
+	emit nodeCreated();
 	if (node1 != nullptr)
 	    node1->chosen(0);
 	node1 = nullptr;
@@ -388,7 +498,8 @@ CanvasView::mousePressEvent(QMouseEvent * event) // Should this be in CS?
 		    if (exists == 0)
 		    {
 			qDeb() << "\t\tcalling addEdgeToScene(n1, n2) !";
-			emit edgeCreated(addEdgeToScene(node1, node2));
+			addEdgeToScene(node1, node2);
+			emit edgeCreated();
 			// qDeb() << "node1->pos() is " << node1->pos();
 			// qDeb() << "node1->scenePos() is " << node1->scenePos();
 			// TODO: without this horrible hack, edges
@@ -410,7 +521,6 @@ CanvasView::mousePressEvent(QMouseEvent * event) // Should this be in CS?
 		    node2->chosen(1);
 		    node1 = node2;
 		    node2 = nullptr;
-
 		    break;
 		}
 	    }
@@ -461,20 +571,6 @@ CanvasView::addEdgeToScene(Node * source, Node * destination)
 	   << "source label is /" << source->getLabel()
 	   << "/ dest label is /" << destination->getLabel() << "/";
 
-    // Prevent edges being made if one already exists between source and dest
-    /*int exists = 0;
-    for (int i = 0; i < source->edgeList.count(); i++)
-        if ((source->edgeList.at(i)->sourceNode() == source
-             && source->edgeList.at(i)->destNode() == destination)
-             || (source->edgeList.at(i)->sourceNode() == destination
-             && source->edgeList.at(i)->destNode() == source))
-            exists = 1;
-
-    if (exists == 1)
-    {
-        return nullptr;
-    }*/
-
     Edge * edge = createEdge(source, destination);
     if (node1->parentItem() == node2->parentItem())
     {
@@ -490,7 +586,7 @@ CanvasView::addEdgeToScene(Node * source, Node * destination)
 	 * Each node has a different parent.
          * Create a graph that will be the parent of the two
          * graphs that each contain the nodes that the new
-         * edge will be incident to.
+         * edge will be incident to. NOT ANYMORE
 	 * TODO: should we amalgamate the graphs rather than having a
 	 * recursive structure?  Joining doesn't currently (Nov 2019)
 	 * work properly when joining two "recursive" graphs.
@@ -501,8 +597,8 @@ CanvasView::addEdgeToScene(Node * source, Node * destination)
         Graph * parent2 = nullptr;
         QPointF itemPos;
 
-        parent1 = qgraphicsitem_cast<Graph*>(node1->parentItem());
-        parent2 = qgraphicsitem_cast<Graph*>(node2->parentItem());
+        parent1 = qgraphicsitem_cast<Graph*>(node1->findRootParent());
+        parent2 = qgraphicsitem_cast<Graph*>(node2->findRootParent());
 
         foreach (QGraphicsItem * item, parent1->childItems())
         {
@@ -516,7 +612,7 @@ CanvasView::addEdgeToScene(Node * source, Node * destination)
             item->setParentItem(root);
             item->setPos(itemPos);
         }
-        edge->setZValue(0);
+        edge->setZValue(-1);
         edge->setParentItem(root);
         root->setHandlesChildEvents(false);
         aScene->addItem(root);
@@ -534,32 +630,10 @@ CanvasView::addEdgeToScene(Node * source, Node * destination)
         aScene->removeItem(parent2);
         delete parent2;
 
-        /*while (parent1->parentItem() != nullptr)
-            parent1 = qgraphicsitem_cast<Graph*>(parent1->parentItem());
-
-        while (parent2->parentItem() != nullptr)
-            parent2 = qgraphicsitem_cast<Graph*>(parent2->parentItem());
-
-        if (parent1 != nullptr && parent2 != nullptr)
-        {
-            edge->setZValue(0);
-            edge->setParentItem(root);
-            parent1->setParentItem(root);
-            parent2->setParentItem(root);
-            root->setHandlesChildEvents(false);
-            aScene->addItem(root);
-
-	    // The following line causes Qt to whine
-	    // "QGraphicsScene::addItem: item has already been added
-	    //		to this scene"
-	    // so in V1.6 it was cautiously commented out.
-            // aScene->addItem(edge);
-            edge->adjust();
-        }*/
         edge->causedConnect = 1;
     }
     else // A root parent was already made, so dont make another.
-    {
+    { // can this happen anymore?
         edge->setZValue(-1);
         edge->setParentItem(node1->findRootParent());
         edge->adjust();

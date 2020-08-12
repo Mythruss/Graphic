@@ -162,6 +162,31 @@ PreView::keyPressEvent(QKeyEvent * event)
 }
 
 
+/*
+ * Name:        wheelEvent
+ * Purpose:     Perform the appropriate action for wheel scroll.
+ * Arguments:   QWheelEvent
+ * Output:      Nothing.
+ * Modifies:    The scale of the preview window for the zoom operations.
+ * Returns:     Nothing.
+ * Assumptions: ?
+ * Bugs:        ?
+ * Notes:       Unhandled key events are passed on to ...?
+ */
+
+void
+PreView::wheelEvent(QWheelEvent *event)
+{
+    qDeb() << "PV:wheelEvent(" << event->angleDelta() << ") called.";
+
+    if (event->modifiers().testFlag(Qt::ControlModifier))
+    {
+        if (event->angleDelta().y() > 0)
+            zoomIn();
+        else if (event->angleDelta().y() < 0)
+            zoomOut();
+    }
+}
 
 /*
  * Name:        scaleView()
@@ -454,8 +479,17 @@ PreView::Style_Graph(Graph * graph,		    int graphType,
     int i = numStart, j = numStart;
 
     QScreen * screen = QGuiApplication::primaryScreen();
-    qreal xDPI = screen->physicalDotsPerInchX();
-    qreal yDPI = screen->physicalDotsPerInchY();
+    qreal xDPI, yDPI;
+    if (settings.value("useDefaultResolution") == false)
+    {
+        xDPI = settings.value("customResolution").toReal();
+        yDPI = settings.value("customResolution").toReal();
+    }
+    else
+    {
+        xDPI = screen->physicalDotsPerInchX();
+        yDPI = screen->physicalDotsPerInchY();
+    }
 
     // The w & h args are *total* w & h for the graph, but we need to
     // locate the center of the nodes.  So first calculate the
@@ -484,8 +518,16 @@ PreView::Style_Graph(Graph * graph,		    int graphType,
         {
 	    Node * node = qgraphicsitem_cast<Node *>(item);
 	    node->setParentItem(nullptr);	    // ?? Eh?
+
+	    if (settings.value("useDefaultResolution") == false)
+		node->physicalDotsPerInchX
+			= settings.value("customResolution").toReal();
+	    else
+		node->physicalDotsPerInchX
+			= settings.value("defaultResolution").toReal();
+
 	    GUARD(nodeThickness_WGT) node->setPenWidth(nodeThickness);
-	    GUARD(nodeSize_WGT) node->setDiameter(nodeDiameter);
+	    GUARD(nodeDiam_WGT) node->setDiameter(nodeDiameter);
 	    GUARD(nodeFillColour_WGT) node->setFillColour(nodeFillColor);
 	    GUARD(nodeOutlineColour_WGT) node->setLineColour(nodeOutlineColor);
 	    GUARD(nodeLabelSize_WGT) node->setNodeLabelSize(nodeLabelSize);
@@ -529,7 +571,7 @@ PreView::Style_Graph(Graph * graph,		    int graphType,
         {
 	    Edge * edge = qgraphicsitem_cast<Edge *>(item);
 	    edge->setParentItem(nullptr);	// ?? Eh?
-	    GUARD(edgeSize_WGT) edge->setPenWidth(edgeSize);
+	    GUARD(edgeThickness_WGT) edge->setPenWidth(edgeSize);
 	    GUARD(edgeLineColour_WGT) edge->setColour(edgeLineColor);
 	    GUARD(edgeLabelSize_WGT)
 		edge->setLabelSize((edgeLabelSize > 0) ? edgeLabelSize : 1);
@@ -540,10 +582,10 @@ PreView::Style_Graph(Graph * graph,		    int graphType,
 		else
 		    edge->setLabel("");	// Clear any old label
 	    }
-	    GUARD(nodeSize_WGT) edge->setDestRadius(nodeDiameter / 2.);
+	    GUARD(nodeDiam_WGT) edge->setDestRadius(nodeDiameter / 2.);
 	    // Q: why did RB do this?  It gives a bizarre value.
 	    // edge->setSourceRadius(edge->sourceNode()->getDiameter() / 2.);
-	    GUARD(nodeSize_WGT) edge->setSourceRadius(nodeDiameter / 2.);
+	    GUARD(nodeDiam_WGT) edge->setSourceRadius(nodeDiameter / 2.);
 	    edge->setParentItem(graph);
         }
     }

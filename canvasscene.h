@@ -3,7 +3,7 @@
  * File:	canvasscene.h
  * Author:	Rachel Bood
  * Date:	?
- * Version:	1.3
+ * Version:	1.4
  *
  * Purpose:
  *
@@ -16,6 +16,10 @@
  *  (a) Added graphDropped() signal to tell mainWindow to update the edit tab.
  * July 9, 2020 (IC V1.3)
  *  (a) Added graphJoined() signal to tell mainWindow to update the edit tab.
+ * July 23, 2020 (IC V1.4)
+ *  (a) Added searchAndSeparate() function to determine if a graph needs to be
+ *      split into individual graphs following a node/edge deletion.
+ *  (b) Added graphSeparated() signal to tell mainwindow to update edit tab.
  */
 
 #ifndef CANVASSCENE_H
@@ -46,9 +50,10 @@ public:
     void searchAndSeparate(QList<Node *> adjacentNodes);
 
 signals:
-    void graphDropped(Graph * graph);
+    void graphDropped();
     void graphJoined();
-    void itemDeleted();
+    void graphSeparated();
+    void somethingChanged();
 
 protected:
     void dragMoveEvent (QGraphicsSceneDragDropEvent * event);

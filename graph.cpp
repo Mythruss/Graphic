@@ -185,7 +185,7 @@ void Graph::setRotation(qreal aRotation)
 QGraphicsItem *Graph::getRootParent()
 {
     QGraphicsItem * parent = this;
-    while (parent != nullptr || parent != 0)
+    while (parent->parentItem() != nullptr || parent->parentItem() != 0)
         parent = parent->parentItem();
     return parent;
 }

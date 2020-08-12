@@ -24,7 +24,6 @@
 
 #include <QLineEdit>
 #include <QObject>
-#include <QGraphicsItem>
 
 class LabelController: public QObject
 {

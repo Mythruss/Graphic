@@ -28,6 +28,8 @@
 #ifndef DEFUNS_H
 #define DEFUNS_H
 
+#include <QSettings>
+
 // Use qDeb() and qDebu() for debugging, and then the statements can
 // be turned on and off with a re-compile but no source-code editing.
 #ifdef DEBUG
@@ -44,9 +46,11 @@ static const bool debug = false;
 #define BUTTON_STYLE "border-style: outset; border-width: 2px; " \
 	     "border-radius: 5px; border-color: beige; padding: 3px;"
 
-enum widget_ID {NO_WGT, ALL_WGT, nodeSize_WGT, nodeLabel1_WGT, nodeLabel2_WGT,
+extern QSettings settings;
+
+enum widget_ID {NO_WGT, ALL_WGT, nodeDiam_WGT, nodeLabel1_WGT, nodeLabel2_WGT,
 		nodeLabelSize_WGT, numLabelCheckBox_WGT, nodeFillColour_WGT,
-		nodeOutlineColour_WGT, edgeSize_WGT, edgeLabel_WGT,
+		nodeOutlineColour_WGT, edgeThickness_WGT, edgeLabel_WGT,
 		edgeLabelSize_WGT, edgeLineColour_WGT, graphRotation_WGT,
 		completeCheckBox_WGT, graphHeight_WGT, graphWidth_WGT,
 		numOfNodes1_WGT, numOfNodes2_WGT, graphTypeComboBox_WGT,

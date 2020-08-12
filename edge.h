@@ -2,7 +2,7 @@
  * File:    edge.h
  * Author:  Rachel Bood
  * Date:    2014/11/07 (?)
- * Version: 1.6
+ * Version: 1.7
  *
  * Purpose: creates an edge for the users graph
  * Modification history:
@@ -33,6 +33,9 @@
  *  (a) Added setEdgeLabel() slot to update label when changes are made on the
  *      canvas in edit mode.
  *  (b) Changed htmlLabel to public for use in labelcontroller.cpp
+ * July 29, 2020 (IC V1.7)
+ *  (a) Added eventFilter() to receive edit tab events so we can identify
+ *      the edge being edited/looked at.
  */
 
 #ifndef EDGE_H
@@ -120,7 +123,7 @@ private:
     qreal	destRadius, sourceRadius, rotation;
     QLineF	edgeLine;
     QString	label;
-    int         penStyle;
+    int		penStyle;
     qreal	labelSize, penSize;
     QColor	edgeColour;
 };
