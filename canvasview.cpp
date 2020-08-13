@@ -2,7 +2,7 @@
  * File:    canvasview.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.19
+ * Version: 1.21
  *
  * Purpose: Initializes a QGraphicsView that is used to house the
  *	    QGraphicsScene.
@@ -67,6 +67,12 @@
  *  (a) Added clearCanvas() function that removes all items from the canvas.
  *  (b) Initialize modeType to 0 to prevent accidental deletion of nonexistant
  *      freestyleGraph on startup.
+ * August 5, 2020 (IC V1.20)
+ *  (a) Added nodeThickness to nodeParams, setUpNodeParams, and createNode.
+ * August 11 (IC V1.21)
+ *  (a) Added scaleView, wheelEvent, zoomIn, and zoomOut as well as updated
+ *      keyPressEvent to allow for zooming on the canvas, similar to the zoom
+ *      from preview.cpp, using either a key press or mouse wheel scroll.
  */
 
 #include "canvasview.h"
@@ -81,39 +87,15 @@
 #include <QGraphicsSceneMouseEvent>
 #include <QPointF>
 
-
-static const QString JOIN_DESCRIPTION =
-    "Join mode: Select 1 or 2 nodes from each of 2 graph components "
-    "and press 'J'.  "
-    "The second component is moved and the second selected node is "
-    "identified with the first.  "
-    "If two other nodes were selected, they are also identified, "
-    "which may cause one part to be rotated.";
-
-static const QString DELETE_DESCRIPTION =
-    "Delete mode: Click on any node or edge to be deleted.  "
-    "Double Click on a graph to delete it entirely.";
-
-static const QString EDIT_DESCRIPTION =
-    "Edit mode: Drag individual nodes around within a graph drawing.  "
-    "Use the 'Esc' key to undo one or more node drags.  ";
-    // TODO make this work "Click on a node to give it a label.  ";
-
-static const QString FREESTYLE_DESCRIPTION =
-    "Freestyle mode: Add nodes by double clicking at the desired location.  "
-    "Add a path between existing nodes by clicking on two or more nodes "
-    "consecutively.  "
-    "To finish a path, click on empty space.";
-    
-static const QString DRAG_DESCRIPTION =
-    "Drag mode: Hold the mouse down over any part of a graph and move "
-    "the mouse to drag that graph around the canvas.";
-
 // This is the factor by which the canvas is zoomed for each
 // zoom in or zoom out operation.
 #define SCALE_FACTOR    1.1
 static qreal zoomValue = 100;
 static QString zoomDisplayText = "Zoom: " + QString::number(zoomValue) + "%";
+
+// Empirically chosen values, modify as you see fit:
+#define MIN_ZOOM_LEVEL  0.07
+#define MAX_ZOOM_LEVEL  10.0
 
 
 /*
@@ -225,11 +207,9 @@ CanvasView::keyPressEvent(QKeyEvent * event)
     {
         switch (event->key())
         {
-          //case Qt::Key_Plus:
           case Qt::Key_Equal:
             zoomIn();
             break;
-          //case Qt::Key_Underscore:
           case Qt::Key_Minus:
             zoomOut();
             break;
@@ -237,6 +217,8 @@ CanvasView::keyPressEvent(QKeyEvent * event)
             QGraphicsView::keyPressEvent(event);
         }
     }
+    else
+        QGraphicsView::keyPressEvent(event);
 }
 
 
@@ -249,7 +231,7 @@ CanvasView::keyPressEvent(QKeyEvent * event)
  * Returns:     Nothing.
  * Assumptions: ?
  * Bugs:        ?
- * Notes:       Unhandled key events are passed on to ...?
+ * Notes:       Unhandled key events are passed on to QGraphicsView
  */
 
 void
@@ -263,7 +245,11 @@ CanvasView::wheelEvent(QWheelEvent *event)
             zoomIn();
         else if (event->angleDelta().y() < 0)
             zoomOut();
+        else
+            QGraphicsView::wheelEvent(event);
     }
+    else
+        QGraphicsView::wheelEvent(event);
 }
 
 
@@ -286,7 +272,7 @@ CanvasView::scaleView(qreal scaleFactor)
 
     qreal factor = transform().scale(scaleFactor, scaleFactor)
                 .mapRect(QRectF(0, 0, 1, 1)).width();
-    if (factor < 0.07 || factor > 10) // Why these values?
+    if (factor < MIN_ZOOM_LEVEL || factor > MAX_ZOOM_LEVEL)
         return;
     scale(scaleFactor, scaleFactor);
 
@@ -364,35 +350,13 @@ CanvasView::setMode(int m)
     modeType = m;
     freestyleGraph = nullptr;
 
-    switch (modeType)
+    if (modeType == mode::freestyle)
     {
-      case mode::join:
-	emit setKeyStatusLabelText(JOIN_DESCRIPTION);
-	break;
-
-      case mode::del:
-	emit setKeyStatusLabelText(DELETE_DESCRIPTION);
-	break;
-
-      case mode::edit:
-	emit setKeyStatusLabelText(EDIT_DESCRIPTION);
-	break;
-
-      case mode::drag:
-	emit setKeyStatusLabelText(DRAG_DESCRIPTION);
-	break;
-
-      case mode::freestyle:
-	emit setKeyStatusLabelText(FREESTYLE_DESCRIPTION);
 	freestyleGraph = new Graph();
 	aScene->addItem(freestyleGraph);
 	freestyleGraph->isMoved();
 	node1 = nullptr;
 	node2 = nullptr;
-	break;
-
-      default:
-        break;
     }
     aScene->setCanvasMode(m);
 }
@@ -579,17 +543,13 @@ CanvasView::addEdgeToScene(Node * source, Node * destination)
         Graph * parent = qgraphicsitem_cast<Graph*>(node1->parentItem());
         edge->setParentItem(parent);
     }
-    else if (node1->findRootParent() != node2->findRootParent())
+    else
     {
 	qDeb() << "\taETS: nodes have different parentItems";
         /*
 	 * Each node has a different parent.
-         * Create a graph that will be the parent of the two
-         * graphs that each contain the nodes that the new
-         * edge will be incident to. NOT ANYMORE
-	 * TODO: should we amalgamate the graphs rather than having a
-	 * recursive structure?  Joining doesn't currently (Nov 2019)
-	 * work properly when joining two "recursive" graphs.
+	 * Create a graph that will contain the children of the old
+	 * graphs as well as the new edge being made.
          */
 
         Graph * root = new Graph();
@@ -597,20 +557,22 @@ CanvasView::addEdgeToScene(Node * source, Node * destination)
         Graph * parent2 = nullptr;
         QPointF itemPos;
 
-        parent1 = qgraphicsitem_cast<Graph*>(node1->findRootParent());
-        parent2 = qgraphicsitem_cast<Graph*>(node2->findRootParent());
+        parent1 = qgraphicsitem_cast<Graph*>(node1->parentItem());
+        parent2 = qgraphicsitem_cast<Graph*>(node2->parentItem());
 
         foreach (QGraphicsItem * item, parent1->childItems())
         {
             itemPos = item->scenePos();
             item->setParentItem(root);
             item->setPos(itemPos);
+            item->setRotation(0);
         }
         foreach (QGraphicsItem * item, parent2->childItems())
         {
             itemPos = item->scenePos();
             item->setParentItem(root);
             item->setPos(itemPos);
+            item->setRotation(0);
         }
         edge->setZValue(-1);
         edge->setParentItem(root);
@@ -631,12 +593,6 @@ CanvasView::addEdgeToScene(Node * source, Node * destination)
         delete parent2;
 
         edge->causedConnect = 1;
-    }
-    else // A root parent was already made, so dont make another.
-    { // can this happen anymore?
-        edge->setZValue(-1);
-        edge->setParentItem(node1->findRootParent());
-        edge->adjust();
     }
     qDeb() << "\taETS: done!";
     return edge;

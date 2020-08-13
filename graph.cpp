@@ -157,12 +157,12 @@ void Graph::setRotation(qreal aRotation)
                 else if (child->type() == Node::Type)
                 {
                     Node * node = qgraphicsitem_cast<Node*>(child);
-                    node->setRotation(node->getRotation() + -aRotation);
+                    node->setRotation(-aRotation);
                 }
                 else if(child->type() == Edge::Type)
                 {
                     Edge * edge = qgraphicsitem_cast<Edge*>(child);
-                    edge->setRotation(edge->getRotation() + -aRotation);
+                    edge->setRotation(-aRotation);
                 }
                 list.removeOne(child);
             }

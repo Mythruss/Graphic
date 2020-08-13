@@ -1,3 +1,24 @@
+/*
+ * File:    settingsdialog.h
+ * Author:  Ian Cathcart
+ * Date:    2020/08/05
+ * Version: 1.2
+ *
+ * Purpose: Define the behaviour of the settings dialog window.
+ *
+ * Modification history:
+ * August 6, 2020 (IC V1.1)
+ *  (a) Lots of tweaks to saveSettings() and loadSettings() to make sure
+ *      they properly save and load custom DPI settings.
+ *  (b) Added a signal to tell mainWindow that the user OK'd the dialog.
+ * August 7, 2020 (IC V1.2)
+ *  (a) Added background colour buttons to settingsdialog.ui so their code
+ *      is reflected here. They should prompt the user to select a colour
+ *      for saved graph backgrounds. TODO: Allow a transparent background
+ *      option for non-JPEG image types.
+ */
+
+
 #include "settingsdialog.h"
 #include "ui_settingsdialog.h"
 #include "defuns.h"
@@ -29,7 +50,7 @@ SettingsDialog::~SettingsDialog()
 
 void
 SettingsDialog::loadSettings()
-{
+{   
     // Always set this label to defaultResolution
     ui->defaultLabel->setText(settings.value("defaultResolution").toString()
                               + " pixels/inch");

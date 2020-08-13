@@ -2,7 +2,7 @@
  * File:    canvasscene.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.14
+ * Version: 1.16
  *
  * Purpose: Initializes a QGraphicsScene to implement a drag and drop feature.
  *          still very much a WIP
@@ -62,6 +62,13 @@
  *      of the two graphs are now reassigned to a singular graph and the old
  *      graph objects are deleted, atleast in the case of 2 nodes selected!
  *      4 nodes selected is still WIP, as it messes up the rotations somehow.
+ * July 31, 2020 (IC V1.15)
+ *  (a) Added somethingChanged() signal to be used along with the other signals
+ *      to tell mainWindow that something has changed on the canvas and thus a
+ *      new save prompt is necessary.
+ * August 12, 2020 (IC V1.16)
+ *  (a) Fully removed graph recursion from keyReleaseEvent. Graphs should no
+ *      longer find themselves children of other graphs.
  */
 
 #include "canvasscene.h"
@@ -170,6 +177,7 @@ CanvasScene::mousePressEvent(QGraphicsSceneMouseEvent * event)
 
     bool nodeFound = false;
     bool labelFound = false;
+    bool something_changed = false;
 
     if (itemAt(event->scenePos(), QTransform()) != nullptr)
     {
@@ -313,7 +321,7 @@ CanvasScene::mousePressEvent(QGraphicsSceneMouseEvent * event)
 			    }
 			    parent = tempParent;
 			}
-			emit somethingChanged();
+			something_changed = true;
 			break;
 		    }
 		    else if (item->type() == Edge::Type)
@@ -334,11 +342,13 @@ CanvasScene::mousePressEvent(QGraphicsSceneMouseEvent * event)
 
 			delete edge;
 			edge = nullptr;
-			emit somethingChanged();
+			something_changed = true;
 			break;
 		    }
 		}
 	    }
+	    if (something_changed)
+		emit somethingChanged();
 	    break;
 
 	  case CanvasView::edit:
@@ -703,11 +713,12 @@ CanvasScene::keyReleaseEvent(QKeyEvent * event)
 		    }
 		}
 
-                /*foreach (QGraphicsItem * item, root1->childItems())
+                foreach (QGraphicsItem * item, root1->childItems())
                 {
                     itemPos = item->scenePos(); // MUST BE scenePos(), NOT pos()
                     item->setParentItem(newRoot);
                     item->setPos(itemPos);
+                    item->setRotation(0);
                 }
 
                 foreach (QGraphicsItem * item, root2->childItems())
@@ -715,10 +726,9 @@ CanvasScene::keyReleaseEvent(QKeyEvent * event)
                     itemPos = item->scenePos(); // MUST BE scenePos(), NOT pos()
                     item->setParentItem(newRoot);
                     item->setPos(itemPos);
-                }*/
+                    item->setRotation(0);
+                }
 
-		root2->setParentItem(newRoot);
-		root1->setParentItem(newRoot);
 		addItem(newRoot);
 
 		// Dispose of unneeded nodes
@@ -729,6 +739,15 @@ CanvasScene::keyReleaseEvent(QKeyEvent * event)
 		connectNode2b->setParentItem(nullptr);
 		removeItem(connectNode2b);
 		delete connectNode2b;
+
+                // Dispose of old roots
+                removeItem(root1);
+                delete root1;
+                root1 = nullptr;
+
+                removeItem(root2);
+                delete root2;
+                root2 = nullptr;
 
 		connectNode1a->chosen(0);
 		connectNode1b->chosen(0);
@@ -836,6 +855,7 @@ CanvasScene::keyReleaseEvent(QKeyEvent * event)
                     itemPos = item->scenePos(); // MUST BE scenePos(), NOT pos()
                     item->setParentItem(newRoot);
                     item->setPos(itemPos);
+                    item->setRotation(0);
                 }
 
                 foreach (QGraphicsItem * item, root2->childItems())
@@ -843,6 +863,7 @@ CanvasScene::keyReleaseEvent(QKeyEvent * event)
                     itemPos = item->scenePos(); // MUST BE scenePos(), NOT pos()
                     item->setParentItem(newRoot);
                     item->setPos(itemPos);
+                    item->setRotation(0);
                 }
 
                 addItem(newRoot);
@@ -1064,6 +1085,7 @@ CanvasScene::searchAndSeparate(QList<Node *> Nodes)
                 itemPos = item->scenePos(); // MUST BE scenePos(), NOT pos()
                 item->setParentItem(graph);
                 item->setPos(itemPos);
+                item->setRotation(0); // Reset rotation to 0
             }
         }
         // Reset all the checked items.

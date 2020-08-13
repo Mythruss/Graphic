@@ -2,7 +2,7 @@
  * File:    node.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.12
+ * Version: 1.13
  *
  * Purpose: creates a node for the users graph
  *
@@ -69,6 +69,9 @@
  * July 29, 2020 (IC V1.12)
  *  (a) Added eventFilter() to receive edit tab events so we can identify
  *      the node being edited/looked at.
+ * August 12 , 2020 (IC V1.13)
+ *  (a) Updated the constructor to use global physicalDPI variable for node
+ *      DPI.
  */
 
 #include "defuns.h"
@@ -116,11 +119,7 @@ Node::Node()
     htmlLabel = new HTML_Label(this);
     setHandlesChildEvents(true);
     select = false;		    // TODO: is 'select' of any use?
-    QScreen * screen = QGuiApplication::primaryScreen();
-    if (settings.value("useDefaultResolution") == false)
-        physicalDotsPerInchX = settings.value("customResolution").toReal();
-    else
-        physicalDotsPerInchX = screen->physicalDotsPerInchX();
+    physicalDotsPerInchX = currentPhysicalDPI_X;
     checked = 0;
 
     connect(htmlLabel->document(), SIGNAL(contentsChanged()),
@@ -979,7 +978,7 @@ Node::mouseReleaseEvent(QGraphicsSceneMouseEvent * event)
  * Returns:
  * Assumptions:
  * Bugs:
- * Notes:       Try using QEvent::HoverEnter and QEvent::HoverLeave
+ * Notes:       Try using QEvent::HoverEnter and QEvent::HoverLeave?
  */
 
 bool

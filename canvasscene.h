@@ -3,7 +3,7 @@
  * File:	canvasscene.h
  * Author:	Rachel Bood
  * Date:	?
- * Version:	1.4
+ * Version:	1.5
  *
  * Purpose:
  *
@@ -20,6 +20,9 @@
  *  (a) Added searchAndSeparate() function to determine if a graph needs to be
  *      split into individual graphs following a node/edge deletion.
  *  (b) Added graphSeparated() signal to tell mainwindow to update edit tab.
+ * July 31, 2020 (IC V1.5)
+ *  (a) Added somethingChanged() signal to tell mainWindow that something has
+ *      changed on the canvas and thus a new save prompt is necessary.
  */
 
 #ifndef CANVASSCENE_H

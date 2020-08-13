@@ -2039,6 +2039,9 @@
                    <pointsize>12</pointsize>
                   </font>
                  </property>
+                 <property name="toolTip">
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Use Crtl-= or Ctrl-MouseScrollUp to zoom in.&lt;/p&gt;&lt;p&gt;Use Crtl-- or Ctrl-MouseScrollDown to zoom out.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 </property>
                  <property name="text">
                   <string>Zoom: 100%</string>
                  </property>
@@ -2310,6 +2313,9 @@
             <font>
              <pointsize>12</pointsize>
             </font>
+           </property>
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Use Crtl-= or Ctrl-MouseScrollUp to zoom in.&lt;/p&gt;&lt;p&gt;Use Crtl-- or Ctrl-MouseScrollDown to zoom out.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
            <property name="text">
             <string>Zoom: 100%</string>

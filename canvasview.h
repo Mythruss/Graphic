@@ -2,7 +2,7 @@
  * File:    canvasview.h
  * Author:  Rachel Bood
  * Date:    2014/11/07 (?)
- * Version: 1.4
+ * Version: 1.6
  *
  * Purpose: Define the CanvasView class.
  *
@@ -19,6 +19,12 @@
  *      update the edit tab.
  * July 24, 2020 (IC V1.4)
  *  (a) Added clearCanvas() function that removes all items from the canvas.
+ * August 5, 2020 (IC V1.5)
+ *  (a) Added nodeThickness to nodeParams, setUpNodeParams, and createNode.
+ * August 11 (IC V1.6)
+ *  (a) Added scaleView, wheelEvent, zoomIn, and zoomOut as well as updated
+ *      keyPressEvent to allow for zooming on the canvas, similar to the zoom
+ *      from preview.cpp, using either a key press or mouse wheel scroll.
  */
 
 

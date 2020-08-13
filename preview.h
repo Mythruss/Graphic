@@ -2,7 +2,7 @@
  * File:    preview.h
  * Author:  Rachel Bood 100088769
  * Date:    2014/11/07 (?)
- * Version: 1.5
+ * Version: 1.6
  *
  * Purpose: define the fields of the preview class.
  *
@@ -29,6 +29,8 @@
  *      thickness of nodes.
  * July 7, 2020 (IC V1.5)
  *  (a) Added zoomChanged signal to tell the mainwindow to update zoomDisplay.
+ * August 11, 2020 (IC V1.6)
+ *  (a) Added wheelEvent to allow for zooming using the mouse wheel.
  */
 
 #ifndef PREVIEW_H

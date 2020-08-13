@@ -123,7 +123,7 @@ private:
     qreal	destRadius, sourceRadius, rotation;
     QLineF	edgeLine;
     QString	label;
-    int		penStyle;
+    int 	penStyle;
     qreal	labelSize, penSize;
     QColor	edgeColour;
 };

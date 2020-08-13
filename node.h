@@ -111,7 +111,7 @@ class Node : public QGraphicsObject
 
     HTML_Label * htmlLabel;
     int checked;
-    qreal physicalDotsPerInchX;
+    qreal physicalDotsPerInchX; // should be private with getter/setter
 
   public slots:
     void setNodeLabel();
