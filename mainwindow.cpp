@@ -2,7 +2,7 @@
  * File:	mainwindow.cpp
  * Author:	Rachel Bood
  * Date:	January 25, 2015.
- * Version:	1.46
+ * Version:	1.37
  *
  * Purpose:	Implement the main window and functions called from there.
  *
@@ -242,51 +242,6 @@
  *  (a) Added another connection to update the preview and params when node
  *      thickness is adjusted.
  *  (b) Updated set_Font_Sizes() to include the new thickness widgets.
- * July 7, 2020 (IC V1.38)
- *  (a) Added another connection to update the zoomDisplay after a zoom change.
- * July 9, 2020 (IC V1.39)
- *  (a) Added another connection to update the edit tab after two graphs were
- *      joined.
- *  (b) Fixed a bug that allowed labels to be focusable on the preview pane.
- * July 14, 2020 (IC V1.40)
- *  (a) Corrected an issue that was preventing custom graphs from being
- *      refreshed on the preview after being dropped onto the canvas.
- * July 15, 2020 (IC V1.41)
- *  (a) Added node thickness widgets to the edit tab so that both node penwidth
- *      and diameter can be changed after leaving the preview pane.
- * July 23, 2020 (IC V1.42)
- *  (a) Added another connection to update the edit tab after a graph is
- *      separated.
- * July 24, 2020 (IC V1.43)
- *  (a) Added another connection to call clearCanvas when the clearCanvas
- *      button is pressed.
- * July 29, 2020 (IC V1.44)
- *  (a) Installed event filters in updateEditTab to send event handling to
- *      node.cpp and edge.cpp.
- * July 31, 2020 (IC V1.45)
- *  (a) Added connections to somethingChanged() slot and bool promptSave that
- *      detects if any change has been made on the canvas since the last save
- *      and thus a new save prompt is needed on exit.
- * August 5, 2020 (IC V1.46)
- *  (a) Node thickness should now be included in the save code and is passed
- *      to nodeParam functions.
- *  (b) Added updateDpiAndPreview slot and settingsDialog variable to be used
- *      in conjunction with the new settingsDialog window which allows the user
- *      to use a custom DPI value instead of the system default.
- *  (b) Renamed nodeSize widget to nodeDiameter and edgeSize widget to
- *      edgeThickness for clarity.
- * August 7, 2020 (IC V1.47)
- *  (a) save_Graph() now uses the saved background colours from settingsDialog
- *      to colour saved graphs.
- * August 11, 2020 (IC V1.48)
- *  (a) A zoom function was added to the canvas similar to the one for the
- *      preview so zoomDisplay_2 needs to be scaled in set_Interface_Sizes().
- * August 12, 2020 (IC V1.48)
- *  (a) Cleaned up set_Interface_Sizes() to make the default scale code more
- *      readable. Currently, the scale is based on logicalDPI/72 for apple
- *      and logicalDPI/96 for any other machine and we only scale up.
- *      TODO: Should we ever scale down? Should we consider other default DPIs
- *      besides 72 and 96?
  */
 
 #include "mainwindow.h"
@@ -331,16 +286,15 @@
 // vertex positions and edge thicknesses, respectively, are written in
 // TikZ output:
 #define VP_PREC_TIKZ  4
-#define VT_PREC_TIKZ  4
 #define ET_PREC_TIKZ  4
 // Similar for vertex precision in .grphc output:
 #define VP_PREC_GRPHC  4
 
+static qreal screenPhysicalDPI_X, screenPhysicalDPI_Y;
 static qreal screenLogicalDPI_X;
 static int j = 0; // # of rows in edit tab
 
 QSettings settings("Acadia", "Graphic");
-qreal currentPhysicalDPI, currentPhysicalDPI_X, currentPhysicalDPI_Y;
 
 /*
  * Name:	MainWindow
@@ -362,24 +316,24 @@ QMainWindow(parent),
     QDir dir(fileDirectory);
 
     if (!dir.exists())
-        if (!dir.mkdir(fileDirectory))
-        {
-            QMessageBox::information(0, "Error",
-                                     "Unable to create the subdirectory ./"
-                                     GRAPHiCS_SAVE_SUBDIR
-                                     " (where the graphs you create are "
-                                     "stored); I will boldly carry on anyway.  "
-                                     "Perhaps you can fix that problem from "
-                                     "a terminal or file manager before you "
-                                     "try to save a graph.");
-        }
+	if (!dir.mkdir(fileDirectory))
+	{
+	    QMessageBox::information(0, "Error", 
+				     "Unable to create the subdirectory ./"
+				     GRAPHiCS_SAVE_SUBDIR
+				     " (where the graphs you create are "
+				     "stored); I will boldly carry on anyway.  "
+				     "Perhaps you can fix that problem from "
+				     "a terminal or file manager before you "
+				     "try to save a graph.");
+	}
 
     ui->setupUi(this);
     this->generate_Combobox_Titles();
 
     connect(ui->actionSave, SIGNAL(triggered()), this, SLOT(save_Graph()));
     connect(ui->actionOpen_File, SIGNAL(triggered()),
-            this, SLOT(load_Graphic_File()));
+	    this, SLOT(load_Graphic_File()));
 
     // Ctrl-Q quits.
     new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Q), this, SLOT(close()));
@@ -396,7 +350,7 @@ QMainWindow(parent),
     new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_T), this, SLOT(dumpTikZ()));
     // Dump graph-ic code to stdout
     new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_G), this,
-                  SLOT(dumpGraphIc()));
+		  SLOT(dumpGraphIc()));
 
     // The horrendous calls to connect() below were the simplest ones
     // I (JD) could find which allow passing information about which
@@ -407,150 +361,130 @@ QMainWindow(parent),
 
     // Redraw the preview pane graph (if any) when these NODE
     // parameters are modified:
-    connect(ui->nodeDiameter,
-            (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
-            this, [this]() { generate_Graph(nodeDiam_WGT); });
+    connect(ui->nodeSize,
+	    (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
+	    this, [this]() { generate_Graph(nodeSize_WGT); });
     connect(ui->nodeThickness,
-            (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
-            this, [this]() { generate_Graph(nodeThickness_WGT); });
+	    (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
+	    this, [this]() { generate_Graph(nodeThickness_WGT); });
     connect(ui->NodeLabel1,
-            (void(QLineEdit::*)(const QString &))&QLineEdit::textChanged,
-            this, [this]() { generate_Graph(nodeLabel1_WGT); });
+	    (void(QLineEdit::*)(const QString &))&QLineEdit::textChanged,
+	    this, [this]() { generate_Graph(nodeLabel1_WGT); });
     connect(ui->NodeLabel2,
-            (void(QLineEdit::*)(const QString &))&QLineEdit::textChanged,
-            this, [this]() { generate_Graph(nodeLabel2_WGT); });
+	    (void(QLineEdit::*)(const QString &))&QLineEdit::textChanged,
+	    this, [this]() { generate_Graph(nodeLabel2_WGT); });
     connect(ui->NodeLabelSize,
-            (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
-            this, [this]() { generate_Graph(nodeLabelSize_WGT); });
+	    (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
+	    this, [this]() { generate_Graph(nodeLabelSize_WGT); });
     connect(ui->NumLabelCheckBox,
-            (void(QCheckBox::*)(bool))&QCheckBox::clicked,
-            this, [this]() { generate_Graph(numLabelCheckBox_WGT); });
+	    (void(QCheckBox::*)(bool))&QCheckBox::clicked,
+	    this, [this]() { generate_Graph(numLabelCheckBox_WGT); });
     connect(ui->NumLabelStart,
-            (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
-            this, [this]() { generate_Graph(numLabelStart_WGT); });
+	    (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
+	    this, [this]() { generate_Graph(numLabelStart_WGT); });
     connect(ui->NodeFillColor,
-            (void(QPushButton::*)(bool))&QPushButton::clicked,
-            this, [this]() { generate_Graph(nodeFillColour_WGT); });
+	    (void(QPushButton::*)(bool))&QPushButton::clicked,
+	    this, [this]() { generate_Graph(nodeFillColour_WGT); });
     connect(ui->NodeOutlineColor,
-            (void(QPushButton::*)(bool))&QPushButton::clicked,
-            this, [this]() { generate_Graph(nodeOutlineColour_WGT); });
+	    (void(QPushButton::*)(bool))&QPushButton::clicked,
+	    this, [this]() { generate_Graph(nodeOutlineColour_WGT); });
 
     // Redraw the preview pane graph (if any) when these EDGE
     // parameters are modified:
-    connect(ui->edgeThickness,
-            (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
-            this, [this]() { generate_Graph(edgeThickness_WGT); });
+    connect(ui->edgeSize,
+	    (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
+	    this, [this]() { generate_Graph(edgeSize_WGT); });
     connect(ui->EdgeLabel,
-            (void(QLineEdit::*)(const QString &))&QLineEdit::textChanged,
-            this, [this]() { generate_Graph(edgeLabel_WGT); });
+	    (void(QLineEdit::*)(const QString &))&QLineEdit::textChanged,
+	    this, [this]() { generate_Graph(edgeLabel_WGT); });
     connect(ui->EdgeLabelSize,
-            (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
-            this, [this]() { generate_Graph(edgeLabelSize_WGT); });
+	    (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
+	    this, [this]() { generate_Graph(edgeLabelSize_WGT); });
     connect(ui->EdgeLineColor,
-            (void(QPushButton::*)(bool))&QPushButton::clicked,
-            this, [this]() { generate_Graph(edgeLineColour_WGT); });
+	    (void(QPushButton::*)(bool))&QPushButton::clicked,
+	    this, [this]() { generate_Graph(edgeLineColour_WGT); });
 
     // Redraw the preview pane graph (if any) when these GRAPH
     // parameters are modified:
     connect(ui->graphRotation,
-            (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
-            this, [this]() { generate_Graph(graphRotation_WGT); });
+	    (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
+	    this, [this]() { generate_Graph(graphRotation_WGT); });
     connect(ui->complete_checkBox,
-            (void(QCheckBox::*)(bool))&QCheckBox::clicked,
-            this, [this]() { generate_Graph(completeCheckBox_WGT); });
+	    (void(QCheckBox::*)(bool))&QCheckBox::clicked,
+	    this, [this]() { generate_Graph(completeCheckBox_WGT); });
     connect(ui->graphHeight,
-            (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
-            this, [this]() { generate_Graph(graphHeight_WGT); });
+	    (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
+	    this, [this]() { generate_Graph(graphHeight_WGT); });
     connect(ui->graphWidth,
-            (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
-            this, [this]() { generate_Graph(graphWidth_WGT); });
+	    (void(QDoubleSpinBox::*)(double))&QDoubleSpinBox::valueChanged,
+	    this, [this]() { generate_Graph(graphWidth_WGT); });
     connect(ui->numOfNodes1,
-            (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
-            this, [this]() { generate_Graph(numOfNodes1_WGT); });
+	    (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
+	    this, [this]() { generate_Graph(numOfNodes1_WGT); });
     connect(ui->numOfNodes2,
-            (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
-            this, [this]() { generate_Graph(numOfNodes2_WGT); });
+	    (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
+	    this, [this]() { generate_Graph(numOfNodes2_WGT); });
     connect(ui->graphType_ComboBox,
-            (void(QComboBox::*)(int))&QComboBox::activated,
-            this, [this]() { generate_Graph(graphTypeComboBox_WGT); });
+	    (void(QComboBox::*)(int))&QComboBox::activated,
+	    this, [this]() { generate_Graph(graphTypeComboBox_WGT); });
 
     // When these NODE and EDGE parameters are changed, the updated
     // values are passed to the canvas view, so that nodes and edges
     // drawn in "Freestyle" mode are styled as per the settings in the
     // "Create Graph" tab.
-    connect(ui->nodeDiameter, SIGNAL(valueChanged(double)),
-            this, SLOT(nodeParamsUpdated()));
+    connect(ui->nodeSize, SIGNAL(valueChanged(double)),
+	    this, SLOT(nodeParamsUpdated()));
     connect(ui->nodeThickness, SIGNAL(valueChanged(double)),
-            this, SLOT(nodeParamsUpdated()));
+	    this, SLOT(nodeParamsUpdated()));
     connect(ui->NodeLabel1, SIGNAL(textChanged(QString)),
-            this, SLOT(nodeParamsUpdated()));
+	    this, SLOT(nodeParamsUpdated()));
     connect(ui->NodeLabel2, SIGNAL(textChanged(QString)),
-            this, SLOT(nodeParamsUpdated()));
+	    this, SLOT(nodeParamsUpdated()));
     connect(ui->NodeLabelSize, SIGNAL(valueChanged(int)),
-            this, SLOT(nodeParamsUpdated()));
+	    this, SLOT(nodeParamsUpdated()));
     connect(ui->NumLabelCheckBox, SIGNAL(clicked(bool)),
-            this, SLOT(nodeParamsUpdated()));
+	    this, SLOT(nodeParamsUpdated()));
     connect(ui->NodeFillColor, SIGNAL(clicked(bool)),
-            this, SLOT(nodeParamsUpdated()));
+	    this, SLOT(nodeParamsUpdated()));
     connect(ui->NodeOutlineColor, SIGNAL(clicked(bool)),
-            this, SLOT(nodeParamsUpdated()));
+	    this, SLOT(nodeParamsUpdated()));
 
-    connect(ui->edgeThickness, SIGNAL(valueChanged(double)),
-            this, SLOT(edgeParamsUpdated()));
+    connect(ui->edgeSize, SIGNAL(valueChanged(double)),
+	    this, SLOT(edgeParamsUpdated()));
     connect(ui->EdgeLabel, SIGNAL(textChanged(QString)),
-            this, SLOT(edgeParamsUpdated()));
+	    this, SLOT(edgeParamsUpdated()));
     connect(ui->EdgeLabelSize, SIGNAL(valueChanged(int)),
-            this, SLOT(edgeParamsUpdated()));
+	    this, SLOT(edgeParamsUpdated()));
     connect(ui->EdgeLineColor, SIGNAL(clicked(bool)),
-            this, SLOT(edgeParamsUpdated()));
+	    this, SLOT(edgeParamsUpdated()));
 
     // Yet more connections...
     connect(ui->snapToGrid_checkBox, SIGNAL(clicked(bool)),
-            ui->canvas, SLOT(snapToGrid(bool)));
+	    ui->canvas, SLOT(snapToGrid(bool)));
 
     connect(ui->canvas, SIGNAL(resetDragMode()),
-            ui->dragMode_radioButton, SLOT(click()));
+	    ui->dragMode_radioButton, SLOT(click()));
 
     // These connects update the edit tab when the number of items on the
     // canvas changes.
-    connect(ui->canvas->scene(), SIGNAL(graphDropped()),
-            this, SLOT(updateEditTab()));
-    connect(ui->canvas->scene(), SIGNAL(graphJoined()),
-            this, SLOT(updateEditTab()));
-    connect(ui->canvas, SIGNAL(nodeCreated()),
-            this, SLOT(updateEditTab()));
-    connect(ui->canvas, SIGNAL(edgeCreated()),
-            this, SLOT(updateEditTab()));
-    connect(ui->canvas->scene(), SIGNAL(graphSeparated()),
-            this, SLOT(updateEditTab()));
+    connect(ui->canvas->scene(), SIGNAL(graphDropped(Graph*)),
+	    this, SLOT(updateEditTab()));
+    connect(ui->canvas, SIGNAL(nodeCreated(Node*)),
+	    this, SLOT(updateEditTab()));
+    connect(ui->canvas, SIGNAL(edgeCreated(Edge*)),
+	    this, SLOT(updateEditTab()));
+
+    /*connect(ui->canvas->scene(), SIGNAL(graphDropped(Graph*)),
+            this, SLOT(addGraphToEditTab(Graph*)));
+    connect(ui->canvas, SIGNAL(nodeCreated(Node*)),
+            this, SLOT(addNodeToEditTab(Node*)));
+    connect(ui->canvas, SIGNAL(edgeCreated(Edge*)),
+            this, SLOT(addEdgeToEditTab(Edge*)));*/
 
     // Adds a new graph to the preview pane when the previous is dropped onto
     // the canvas.
-    connect(ui->canvas->scene(), SIGNAL(graphDropped()),
-            this, SLOT(generate_Graph()));
-
-    // Updates the zoomDisplays after zoomIn/zoomOut is called
-    connect(ui->preview, SIGNAL(zoomChanged(QString)),
-            ui->zoomDisplay, SLOT(setText(QString)));
-    connect(ui->canvas, SIGNAL(zoomChanged(QString)),
-            ui->zoomDisplay_2, SLOT(setText(QString)));
-
-    // Clears all items from the canvas
-    connect(ui->clearCanvas, SIGNAL(clicked()),
-            ui->canvas, SLOT(clearCanvas()));
-
-    // Ask to save on exit if any changes were made on the canvas since
-    // last save.
-    connect(ui->canvas->scene(), SIGNAL(somethingChanged()),
-            this, SLOT(somethingChanged()));
-    connect(ui->canvas, SIGNAL(nodeCreated()),
-            this, SLOT(somethingChanged()));
-    connect(ui->canvas, SIGNAL(edgeCreated()),
-            this, SLOT(somethingChanged()));
-    connect(ui->canvas->scene(), SIGNAL(graphDropped()),
-            this, SLOT(somethingChanged()));
-    connect(ui->canvas->scene(), SIGNAL(graphJoined()),
-            this, SLOT(somethingChanged()));
+    connect(ui->canvas->scene(), SIGNAL(graphDropped(Graph*)),
+	    this, SLOT(generate_Graph()));
 
     // Initialize the canvas to be in "drag" mode.
     ui->dragMode_radioButton->click();
@@ -580,48 +514,29 @@ QMainWindow(parent),
     on_graphType_ComboBox_currentIndexChanged(-1);
 
     QScreen * screen = QGuiApplication::primaryScreen();
-    if (settings.value("useDefaultResolution") == false)
-    {
-        currentPhysicalDPI = settings.value("customResolution").toReal();
-        currentPhysicalDPI_X = settings.value("customResolution").toReal();
-        currentPhysicalDPI_Y = settings.value("customResolution").toReal();
-    }
-    else
-    {
-        currentPhysicalDPI = screen->physicalDotsPerInch();
-        currentPhysicalDPI_X = screen->physicalDotsPerInchX();
-        currentPhysicalDPI_Y = screen->physicalDotsPerInchY();
-    }
+    screenPhysicalDPI_X = screen->physicalDotsPerInchX();
+    screenPhysicalDPI_Y = screen->physicalDotsPerInchY();
     screenLogicalDPI_X = screen->logicalDotsPerInchX();
 
     if (settings.contains("windowSize"))
         loadSettings();
 
-    // Unfortunately qreal QVariants can't convert... so we store an int...
-    int defaultDPI = screen->physicalDotsPerInch();
-    settings.setValue("defaultResolution", defaultDPI);
-
-    settingsDialog = new SettingsDialog(this);
-
-    connect(ui->actionGraph_settings, SIGNAL(triggered()),
-            settingsDialog, SLOT(open()));
-    connect(settingsDialog, SIGNAL(saveDone()),
-            this, SLOT(updateDpiAndPreview()));
-
 
 #ifdef DEBUG
     // Info to help with dealing with HiDPI issues
     printf("Logical DPI: (%.3f, %.3f)\nPhysical DPI: (%.3f, %.3f)\n",
-           screen->logicalDotsPerInchX(), screen->logicalDotsPerInchY(),
-           screen->physicalDotsPerInchX(), screen->physicalDotsPerInchY());
+	   screen->logicalDotsPerInchX(), screen->logicalDotsPerInchY(),
+	   screen->physicalDotsPerInchX(), screen->physicalDotsPerInchY());
     printf("Physical size (mm): ht %.1f, wd %.3f\n",
-           screen->physicalSize().height(), screen->physicalSize().width());
+	   screen->physicalSize().height(), screen->physicalSize().width());
     printf("Pixel resolution:  %d, %d\n",
-           screen->size().height(), screen->size().width());
+	   screen->size().height(), screen->size().width());
     printf("screen->devicePixelRatio: %.3f\n", screen->devicePixelRatio());
     fflush(stdout);
 #endif
 }
+
+
 
 /*
  * Name:	~MainWindow
@@ -663,7 +578,7 @@ MainWindow::generate_Combobox_Titles()
     int i = 1;
 
     while (i < BasicGraphs::Count)
-        ui->graphType_ComboBox->addItem(basicG->getGraphName(i++));
+	ui->graphType_ComboBox->addItem(basicG->getGraphName(i++));
 
     ui->graphType_ComboBox->insertSeparator(BasicGraphs::Count);
     this->load_Graphic_Library();
@@ -690,9 +605,9 @@ saveEdgelist(QTextStream &outfile, QVector<Node *> nodes)
 
     for (int i = 0; i < nodes.count(); i++)
     {
-        for (int j = 0; j < nodes.at(i)->edgeList.count(); j++)
-        {
-            Edge * edge = nodes.at(i)->edgeList.at(j);
+	for (int j = 0; j < nodes.at(i)->edgeList.count(); j++)
+	{
+	    Edge * edge = nodes.at(i)->edgeList.at(j);
 
 	    if (edge->sourceNode()->getID() == i
 		&& edge->destNode()->getID() > i)
@@ -758,61 +673,61 @@ lookupColour(QColor color)
 
     if (r == 0)
     {
-        if (g == 0 && b == 0)
-            return "black";
-        if (g == 255 && b == 0)
-            return "green";
-        if (g == 0 && b == 255)
-            return "blue";
-        if (g == 255 && b == 255)
-            return "cyan";
-        if (CLOSE(g, 127) && CLOSE(b, 127))
-            return "teal";
-        return nullptr;
+	if (g == 0 && b == 0)
+	    return "black";
+	if (g == 255 && b == 0)
+	    return "green";
+	if (g == 0 && b == 255)
+	    return "blue";
+	if (g == 255 && b == 255)
+	    return "cyan";
+	if (CLOSE(g, 127) && CLOSE(b, 127))
+	    return "teal";
+	return nullptr;
     }
 
     if (CLOSE(r, 63) && CLOSE(g, 63) && CLOSE(b, 63))
-        return "darkgray";
+	return "darkgray";
 
     if (CLOSE(r, 127))			    // 0.5 -> 127.5
     {
-        if (CLOSE(g, 127) && CLOSE(b, 127))
-            return "gray";
-        if (CLOSE(g, 127) && b == 0)
-            return "olive";
-        if (g == 0 && CLOSE(b, 127))
-            return "violet";
-        return nullptr;
+	if (CLOSE(g, 127) && CLOSE(b, 127))
+	    return "gray";
+	if (CLOSE(g, 127) && b == 0)
+	    return "olive";
+	if (g == 0 && CLOSE(b, 127))
+	    return "violet";
+	return nullptr;
     }
 
     if (CLOSE(r, 191))			    // 0.75 -> 191.25
     {
-        if (g == 0 && CLOSE(b, 63))	    // 0.25 -> 63.75
-            return "purple";
-        if (CLOSE(g, 127) && CLOSE(b, 63))
-            return "brown";
-        if (g == 255 && b == 0)
-            return "lime";
-        if (CLOSE(g, 191) && CLOSE(b, 191))
-            return "lightgray";
-        return nullptr;
+	if (g == 0 && CLOSE(b, 63))	    // 0.25 -> 63.75
+	    return "purple";
+	if (CLOSE(g, 127) && CLOSE(b, 63))
+	    return "brown";
+	if (g == 255 && b == 0)
+	    return "lime";
+	if (CLOSE(g, 191) && CLOSE(b, 191))
+	    return "lightgray";
+	return nullptr;
     }
 
     if (r == 255)
     {
-        if (g == 255 && b == 255)
-            return "white";
-        if (g == 0 && b == 0)
-            return "red";
-        if (g == 0 && b == 255)
-            return "magenta";
-        if (g == 255 && b == 0)
-            return "yellow";
-        if (CLOSE(g, 127) && b == 0)
-            return "orange";
-        if (CLOSE(g, 191) && CLOSE(b, 191))
-            return "pink";
-        return nullptr;
+	if (g == 255 && b == 255)
+	    return "white";
+	if (g == 0 && b == 0)
+	    return "red";
+	if (g == 0 && b == 255)
+	    return "magenta";
+	if (g == 255 && b == 0)
+	    return "yellow";
+	if (CLOSE(g, 127) && b == 0)
+	    return "orange";
+	if (CLOSE(g, 191) && CLOSE(b, 191))
+	    return "pink";
+	return nullptr;
     }
     return nullptr;
 }
@@ -824,7 +739,6 @@ typedef struct
     int fillR, fillG, fillB;
     int lineR, lineG, lineB;
     qreal nodeDiameter;		// inches
-    qreal penSize;              // pixels (!); thickness of line.
     qreal labelSize;		// points; See Node::setNodeLabelSize()
 } nodeInfo;
 
@@ -852,22 +766,21 @@ typedef struct
 
 void
 findDefaults(QVector<Node *> nodes,
-             nodeInfo * nodeDefaults_p, edgeInfo * edgeDefaults_p)
+	     nodeInfo * nodeDefaults_p, edgeInfo * edgeDefaults_p)
 {
     // Set the default defaults (sic).
     // TODO: These values should really be #defines somewhere.
-    *nodeDefaults_p = {255, 255, 255, 0, 0, 0, (qreal)0.2, (qreal)1., 12};
+    *nodeDefaults_p = {255, 255, 255, 0, 0, 0, (qreal)0.2, 12};
     *edgeDefaults_p = {0, 0, 0, (qreal)1., (qreal)12.};
 
     if (nodes.count() == 0)
-        return;
+	return;
 
     int max_count, result, colour, R, G, B;
     qreal fresult;
     std::unordered_map<int, int> vFillColour;
     std::unordered_map<int, int> vLineColour;
     std::unordered_map<qreal, int> vNodeDiam;
-    std::unordered_map<qreal, int> vPenSize;
     std::unordered_map<qreal, int> vLabelSize;
     std::unordered_map<int, int> eLineColour;
     std::unordered_map<qreal, int> ePenSize;
@@ -876,12 +789,12 @@ findDefaults(QVector<Node *> nodes,
     // Populate all the node hashes.
     for (int i = 0; i < nodes.count(); i++)
     {
-        Node * node = nodes.at(i);
-        R = node->getFillColour().red();
-        G = node->getFillColour().green();
-        B = node->getFillColour().blue();
-        colour = R << 16 | G << 8 | B;
-        vFillColour[colour]++;
+	Node * node = nodes.at(i);
+	R = node->getFillColour().red();
+	G = node->getFillColour().green();
+	B = node->getFillColour().blue();
+	colour = R << 16 | G << 8 | B;
+	vFillColour[colour]++;
 
 	R = node->getLineColour().red();
 	G = node->getLineColour().green();
@@ -890,17 +803,16 @@ findDefaults(QVector<Node *> nodes,
 	vLineColour[colour]++;
 
 	vNodeDiam[node->getDiameter()]++;
-	vPenSize[node->getPenWidth()]++;
 	vLabelSize[node->getLabelSize()]++;
     }
 
     max_count = 0;
     result = nodeDefaults_p->fillR << 16 | nodeDefaults_p->fillG << 8
-        | nodeDefaults_p->fillB;
+	| nodeDefaults_p->fillB;
     for (auto item : vFillColour)
     {
         if (max_count < item.second)
-        {
+	{
             result = item.first;
             max_count = item.second;
         }
@@ -911,11 +823,11 @@ findDefaults(QVector<Node *> nodes,
 
     max_count = 0;
     result = nodeDefaults_p->lineR << 16 | nodeDefaults_p->lineG << 8
-        | nodeDefaults_p->lineB;
+	| nodeDefaults_p->lineB;
     for (auto item : vLineColour)
     {
         if (max_count < item.second)
-        {
+	{
             result = item.first;
             max_count = item.second;
         }
@@ -929,7 +841,7 @@ findDefaults(QVector<Node *> nodes,
     for (auto item : vNodeDiam)
     {
         if (max_count < item.second)
-        {
+	{
             fresult = item.first;
             max_count = item.second;
         }
@@ -938,24 +850,11 @@ findDefaults(QVector<Node *> nodes,
     qDebu("nodeDiam: %.4f count = %d", fresult, max_count);
 
     max_count = 0;
-    fresult = nodeDefaults_p->penSize;
-    for (auto item : vPenSize)
-    {
-        if (max_count < item.second)
-        {
-            fresult = item.first;
-            max_count = item.second;
-        }
-    }
-    nodeDefaults_p->penSize = fresult;
-    qDebu("nodePenSize: %.4f count = %d", fresult, max_count);
-
-    max_count = 0;
     fresult = nodeDefaults_p->labelSize;
     for (auto item : vLabelSize)
     {
         if (max_count < item.second)
-        {
+	{
             fresult = item.first;
             max_count = item.second;
         }
@@ -965,43 +864,43 @@ findDefaults(QVector<Node *> nodes,
 
     for (int i = 0; i < nodes.count(); i++)
     {
-        for (int j = 0; j < nodes.at(i)->edgeList.count(); j++)
-        {
-            // TODO: see TODO in Edge section of saveTikZ().
-            Edge * edge = nodes.at(i)->edgeList.at(j);
-            int sourceID = edge->sourceNode()->getID();
-            int destID = edge->destNode()->getID();
-            if ((sourceID == i && destID > i)
-                || (destID == i && sourceID > i))
-            {
-                R = edge->getColour().red();
-                G = edge->getColour().green();
-                B = edge->getColour().blue();
-                colour = R << 16 | G << 8 | B;
-                eLineColour[colour]++;
-                // Don't count 0's, they are likely bogus.
-                if (edge->getPenWidth() > 0)
-                    ePenSize[edge->getPenWidth()]++;
-                // Only count the label sizes for edges which have a label.
-                if (edge->getLabel().length() > 0)
-                {
-                    qDebu("i=%d, j=%d, label=/%s/, size=%.1f",
-                          i, j, edge->getLabel().toLatin1().data(),
-                          edge->getLabelSize());
-                    if (edge->getLabelSize() >= 1)
-                        eLabelSize[edge->getLabelSize()]++;
-                }
-            }
-        }
+	for (int j = 0; j < nodes.at(i)->edgeList.count(); j++)
+	{
+	    // TODO: see TODO in Edge section of saveTikZ().
+	    Edge * edge = nodes.at(i)->edgeList.at(j);
+	    int sourceID = edge->sourceNode()->getID();
+	    int destID = edge->destNode()->getID();
+	    if ((sourceID == i && destID > i)
+		|| (destID == i && sourceID > i))
+	    {
+		R = edge->getColour().red();
+		G = edge->getColour().green();
+		B = edge->getColour().blue();
+		colour = R << 16 | G << 8 | B;
+		eLineColour[colour]++;
+		// Don't count 0's, they are likely bogus.
+		if (edge->getPenWidth() > 0)
+		    ePenSize[edge->getPenWidth()]++;
+		// Only count the label sizes for edges which have a label.
+		if (edge->getLabel().length() > 0)
+		{
+		    qDebu("i=%d, j=%d, label=/%s/, size=%.1f",
+			  i, j, edge->getLabel().toLatin1().data(),
+			  edge->getLabelSize());
+		    if (edge->getLabelSize() >= 1)
+			eLabelSize[edge->getLabelSize()]++;
+		}
+	    }
+	}
     }
 
     max_count = 0;
     result = edgeDefaults_p->lineR << 16 | edgeDefaults_p->lineG << 8
-        | edgeDefaults_p->lineB;
+	| edgeDefaults_p->lineB;
     for (auto item : eLineColour)
     {
         if (max_count < item.second)
-        {
+	{
             result = item.first;
             max_count = item.second;
         }
@@ -1010,14 +909,14 @@ findDefaults(QVector<Node *> nodes,
     edgeDefaults_p->lineG = (result >> 8) & 0xFF;
     edgeDefaults_p->lineB = result & 0xFF;
     qDebu("edgeColour: (%d,%d,%d) count = %d", edgeDefaults_p->lineR,
-          edgeDefaults_p->lineG, edgeDefaults_p->lineB, max_count);
+	  edgeDefaults_p->lineG, edgeDefaults_p->lineB, max_count);
 
     max_count = 0;
     fresult = edgeDefaults_p->penSize;
     for (auto item : ePenSize)
     {
         if (max_count < item.second)
-        {
+	{
             fresult = item.first;
             max_count = item.second;
         }
@@ -1030,7 +929,7 @@ findDefaults(QVector<Node *> nodes,
     for (auto item : eLabelSize)
     {
         if (max_count < item.second)
-        {
+	{
             fresult = item.first;
             max_count = item.second;
         }
@@ -1084,36 +983,32 @@ saveTikZ(QTextStream &outfile, QVector<Node *> nodes)
     //	     nor (without JD's addition) the RGB colourspace.
     bool defineDefNodeFillColour = false;
     QColor defNodeFillColour
-        = QColor(nodeDefaults.fillR, nodeDefaults.fillG, nodeDefaults.fillB);
+	= QColor(nodeDefaults.fillR, nodeDefaults.fillG, nodeDefaults.fillB);
     QString defNodeFillColourName = lookupColour(defNodeFillColour);
     if (defNodeFillColourName == nullptr)
     {
-        defineDefNodeFillColour = true;
-        outfile << "    n/.style={fill=defNodeFillColour, ";
+	defineDefNodeFillColour = true;
+	outfile << "    n/.style={fill=defNodeFillColour, "; 
     }
     else
-        outfile << "    n/.style={fill=" << defNodeFillColourName << ", ";
+	outfile << "    n/.style={fill=" << defNodeFillColourName << ", "; 
 
     bool defineDefNodeLineColour = false;
     QColor defNodeLineColour
-        = QColor(nodeDefaults.lineR, nodeDefaults.lineG, nodeDefaults.lineB);
+	= QColor(nodeDefaults.lineR, nodeDefaults.lineG, nodeDefaults.lineB);
     QString defNodeLineColourName = lookupColour(defNodeLineColour);
     if (defNodeLineColourName == nullptr)
     {
-        defineDefNodeLineColour = true;
-        outfile << "draw=defNodeLineColour, shape=circle,\n";
+	defineDefNodeLineColour = true;
+	outfile << "draw=defNodeLineColour, shape=circle,\n";
     }
     else
-        outfile << "draw=" << defNodeLineColourName << ", shape=circle,\n";
+	outfile << "draw=" << defNodeLineColourName << ", shape=circle,\n"; 
 
     outfile << "\tminimum size=" << nodeDefaults.nodeDiameter << "in, "
-            << "inner sep=0, "
-            << "font=\\fontsize{" << nodeDefaults.labelSize
-            << "}{1}\\selectfont,\n";
-
-    outfile << "\tnode width="
-            << QString::number(nodeDefaults.penSize / currentPhysicalDPI_X,
-                               'f', VT_PREC_TIKZ) << "in},\n";
+	    << "inner sep=0, "
+	    << "font=\\fontsize{" << nodeDefaults.labelSize
+	    << "}{1}\\selectfont},\n";
 
 
     // e style gets 'draw=<colour>' and 'line width=<stroke width>' options
@@ -1123,47 +1018,47 @@ saveTikZ(QTextStream &outfile, QVector<Node *> nodes)
     // (and "circle" to get a circle instead of a box).
     bool defineDefEdgeLineColour = false;
     QColor defEdgeLineColour
-        = QColor(edgeDefaults.lineR, edgeDefaults.lineG, edgeDefaults.lineB);
+	= QColor(edgeDefaults.lineR, edgeDefaults.lineG, edgeDefaults.lineB);
     QString defEdgeLineColourName = lookupColour(defEdgeLineColour);
     if (defEdgeLineColourName == nullptr)
     {
-        defineDefEdgeLineColour = true;
-        outfile << "    e/.style={draw=defEdgeLineColour";
+	defineDefEdgeLineColour = true;
+	outfile << "    e/.style={draw=defEdgeLineColour";
     }
     else
-        outfile << "    e/.style={draw=" << defEdgeLineColourName;
+	outfile << "    e/.style={draw=" << defEdgeLineColourName;
 
     outfile << ", line width="
-            << QString::number(edgeDefaults.penSize / currentPhysicalDPI_X,
-                               'f', ET_PREC_TIKZ) << "in},\n";
+	    << QString::number(edgeDefaults.penSize / screenPhysicalDPI_X,
+			       'f', ET_PREC_TIKZ) << "in},\n";
     outfile << "    l/.style={font=\\fontsize{" << edgeDefaults.labelSize
-            << "}{1}\\selectfont}]\n";
+	    << "}{1}\\selectfont}]\n";
 
     // We have now finished the generic style.
     // Output default colours, if needed.
     if (defineDefNodeFillColour)
     {
-        outfile << "\\definecolor{defNodeFillColour} {RGB} {"
-                << QString::number(defNodeFillColour.red())
-                << "," << QString::number(defNodeFillColour.green())
-                << "," << QString::number(defNodeFillColour.blue())
-                << "}\n";
+	outfile << "\\definecolor{defNodeFillColour} {RGB} {"
+		<< QString::number(defNodeFillColour.red())
+		<< "," << QString::number(defNodeFillColour.green())
+		<< "," << QString::number(defNodeFillColour.blue())
+		<< "}\n";
     }
     if (defineDefNodeLineColour)
     {
-        outfile << "\\definecolor{defNodeLineColour} {RGB} {"
-                << QString::number(defNodeLineColour.red())
-                << "," << QString::number(defNodeLineColour.green())
-                << "," << QString::number(defNodeLineColour.blue())
-                << "}\n";
+	outfile << "\\definecolor{defNodeLineColour} {RGB} {"
+		<< QString::number(defNodeLineColour.red())
+		<< "," << QString::number(defNodeLineColour.green())
+		<< "," << QString::number(defNodeLineColour.blue())
+		<< "}\n";
     }
     if (defineDefEdgeLineColour)
     {
-        outfile << "\\definecolor{defEdgeLineColour} {RGB} {"
-                << QString::number(defEdgeLineColour.red())
-                << "," << QString::number(defEdgeLineColour.green())
-                << "," << QString::number(defEdgeLineColour.blue())
-                << "}\n";
+	outfile << "\\definecolor{defEdgeLineColour} {RGB} {"
+		<< QString::number(defEdgeLineColour.red())
+		<< "," << QString::number(defEdgeLineColour.green())
+		<< "," << QString::number(defEdgeLineColour.blue())
+		<< "}\n";
     }
 
     QString edgeStyles = "";
@@ -1172,23 +1067,23 @@ saveTikZ(QTextStream &outfile, QVector<Node *> nodes)
     qreal minx = 0, maxx = 0, miny = 0, maxy = 0;
     if (nodes.count() > 0)
     {
-        Node * node = nodes.at(0);
-        minx = maxx = node->scenePos().rx();
-        miny = maxy = node->scenePos().ry();
+	Node * node = nodes.at(0);
+	minx = maxx = node->scenePos().rx();
+	miny = maxy = node->scenePos().ry();
     }
     for (int i = 1; i < nodes.count(); i++)
     {
-        Node * node = nodes.at(i);
-        qreal x = node->scenePos().rx();
-        qreal y = node->scenePos().ry();
-        if (x > maxx)
-            maxx = x;
-        else if (x < minx)
-            minx = x;
-        if (y > maxy)
-            maxy = y;
-        else if (y < minx)
-            miny = y;
+	Node * node = nodes.at(i);
+	qreal x = node->scenePos().rx();
+	qreal y = node->scenePos().ry();
+	if (x > maxx)
+	    maxx = x;
+	else if (x < minx)
+	    minx = x;
+	if (y > maxy)
+	    maxy = y;
+	else if (y < minx)
+	    miny = y;
     }
     qreal midx = (maxx + minx) / 2.;
     qreal midy = (maxy + miny) / 2.;
@@ -1203,10 +1098,10 @@ saveTikZ(QTextStream &outfile, QVector<Node *> nodes)
     // this fact is used to simplify the code below.
     for (int i = 0; i < nodes.count(); i++)
     {
-        QString fillColour = "";
-        QString lineColour = "";
-        Node * node = nodes.at(i);
-        bool doNewLine = false;
+	QString fillColour = "";
+	QString lineColour = "";
+	Node * node = nodes.at(i);
+	bool doNewLine = false;
 
 	if (node->getFillColour() != defNodeFillColour)
 	{
@@ -1244,27 +1139,17 @@ saveTikZ(QTextStream &outfile, QVector<Node *> nodes)
 	// Use (x,y) coordinate system for node positions.
 	outfile << "\\node (v" << QString::number(i) << ") at ("
 		<< QString::number((node->scenePos().rx() - midx)
-				   / currentPhysicalDPI_X,
+				   / screenPhysicalDPI_X,
 				   'f', VP_PREC_TIKZ)
 		<< ","
 		<< QString::number((node->scenePos().ry() - midy)
-				   / -currentPhysicalDPI_Y,
+				   / -screenPhysicalDPI_Y,
 				   'f', VP_PREC_TIKZ)
 		<< ") [n";
 	outfile << fillColour << lineColour;
 	if (node->getDiameter() != nodeDefaults.nodeDiameter)
 	{
 	    outfile << ", minimum size=" << QString::number(node->getDiameter())
-		    << "in";
-	    doNewLine = true;
-	}
-
-	if (node->getPenWidth() != nodeDefaults.penSize)
-	{
-	    outfile << ", node width="
-		    << QString::number(node->getPenWidth()
-				       / currentPhysicalDPI_X,
-				       'f', VT_PREC_TIKZ)
 		    << "in";
 	    doNewLine = true;
 	}
@@ -1304,46 +1189,46 @@ saveTikZ(QTextStream &outfile, QVector<Node *> nodes)
     //		{$<edge label>} (v_<m>);
     for (int i = 0; i < nodes.count(); i++)
     {
-        bool wroteExtra = false;
-        qDebu("\tNode %d has %d edges", i, nodes.at(i)->edgeList.count());
-        for (int j = 0; j < nodes.at(i)->edgeList.count(); j++)
-        {
-            // TODO: is it possible that with various and sundry
-            // operations on graphs neither the sourceID nor the
-            // destID of an edge in nodes.at(i)'s list is equal to
-            // i, and thus some edge won't be printed?  If so,
-            // should we just test "sourceID < destID in the if
-            // test immediately below?
-            Edge * edge = nodes.at(i)->edgeList.at(j);
-            int sourceID = edge->sourceNode()->getID();
-            int destID = edge->destNode()->getID();
-            if ((sourceID == i && destID > i)
-                || (destID == i && sourceID > i))
-            {
-                qDebu("\ti %d j %d srcID %d dstID %d", i, j, sourceID, destID);
-                qDebu("\tlabel = /%s/", edge->getLabel().toLatin1().data());
-                QString lineColour = "";
-                if (edge->getColour() != defEdgeLineColour)
-                {
-                    qDebu("E %d,%d: colour non-default", sourceID, destID);
-                    lineColour = lookupColour(edge->getColour());
-                    if (lineColour == nullptr)
-                    {
-                        lineColour = "e" + QString::number(sourceID) + "_"
-                            + QString::number(destID) + "lineClr";
-                        outfile << "\\definecolor{" << lineColour << "}{RGB}{"
-                                << QString::number(edge->getColour().red())
-                                << ","
-                                << QString::number(edge->getColour().green())
-                                << ","
-                                << QString::number(edge->getColour().blue())
-                                << "}\n";
-                    }
-                    lineColour = ", draw=" + lineColour;
-                    wroteExtra = true;
-                    qDebu("\tSETTING lineColour = /%s/",
-                          lineColour.toLatin1().data());
-                }
+	bool wroteExtra = false;
+	qDebu("\tNode %d has %d edges", i, nodes.at(i)->edgeList.count());
+	for (int j = 0; j < nodes.at(i)->edgeList.count(); j++)
+	{
+	    // TODO: is it possible that with various and sundry
+	    // operations on graphs neither the sourceID nor the
+	    // destID of an edge in nodes.at(i)'s list is equal to
+	    // i, and thus some edge won't be printed?  If so,
+	    // should we just test "sourceID < destID in the if
+	    // test immediately below?
+	    Edge * edge = nodes.at(i)->edgeList.at(j);
+	    int sourceID = edge->sourceNode()->getID();
+	    int destID = edge->destNode()->getID();
+	    if ((sourceID == i && destID > i)
+		|| (destID == i && sourceID > i))
+	    {
+		qDebu("\ti %d j %d srcID %d dstID %d", i, j, sourceID, destID);
+		qDebu("\tlabel = /%s/", edge->getLabel().toLatin1().data());
+		QString lineColour = "";
+		if (edge->getColour() != defEdgeLineColour)
+		{
+		    qDebu("E %d,%d: colour non-default", sourceID, destID);
+		    lineColour = lookupColour(edge->getColour());
+		    if (lineColour == nullptr)
+		    {
+			lineColour = "e" + QString::number(sourceID) + "_"
+			    + QString::number(destID) + "lineClr";
+			outfile << "\\definecolor{" << lineColour << "}{RGB}{"
+				<< QString::number(edge->getColour().red())
+				<< ","
+				<< QString::number(edge->getColour().green())
+				<< ","
+				<< QString::number(edge->getColour().blue())
+				<< "}\n";
+		    }
+		    lineColour = ", draw=" + lineColour;
+		    wroteExtra = true;
+		    qDebu("\tSETTING lineColour = /%s/",
+			  lineColour.toLatin1().data());
+		}
 
 		outfile << "\\path (v"
 			<< QString::number(sourceID)
@@ -1352,7 +1237,7 @@ saveTikZ(QTextStream &outfile, QVector<Node *> nodes)
 		{
 		    outfile << ", line width="
 			    << QString::number(edge->getPenWidth()
-					       / currentPhysicalDPI_X,
+					       / screenPhysicalDPI_X,
 					       'f', ET_PREC_TIKZ)
 			    << "in";
 		    wroteExtra = true;
@@ -1405,7 +1290,7 @@ saveTikZ(QTextStream &outfile, QVector<Node *> nodes)
  * Modifies:	Nothing.
  * Returns:	True on success.
  * Assumptions:	Args are valid.
- * Bugs:
+ * Bugs:	
  * Notes:	Currently always returns T, but maybe in the future ...
  *		Normally vertex and edge label info is not output if
  *		the label is empty, but if outputExtra = T these
@@ -1433,7 +1318,7 @@ saveGraphIc(QTextStream &outfile, QVector<Node *> nodes, bool outputExtra)
     QString nodeInfo = QString::number(nodes.count()) + "\n\n";
 
     outfile << "# The node descriptions; the format is:\n";
-    outfile << "# x,y, diameter, pen_width, rotation, fill r,g,b,\n";
+    outfile << "# x,y, diameter, rotation, fill r,g,b,\n";
     outfile << "#      outline r,g,b[, label font size,label]\n";
 
     // In some cases I have created a graph where all the
@@ -1445,78 +1330,77 @@ saveGraphIc(QTextStream &outfile, QVector<Node *> nodes, bool outputExtra)
     qreal minx = 0, maxx = 0, miny = 0, maxy = 0;
     if (nodes.count() > 0)
     {
-        Node * node = nodes.at(0);
-        minx = maxx = node->scenePos().rx();
-        miny = maxy = node->scenePos().ry();
+	Node * node = nodes.at(0);
+	minx = maxx = node->scenePos().rx();
+	miny = maxy = node->scenePos().ry();
     }
     for (int i = 1; i < nodes.count(); i++)
     {
-        Node * node = nodes.at(i);
-        qreal x = node->scenePos().rx();
-        qreal y = node->scenePos().ry();
-        if (x > maxx)
-            maxx = x;
-        else if (x < minx)
-            minx = x;
-        if (y > maxy)
-            maxy = y;
-        else if (y < minx)
-            miny = y;
+	Node * node = nodes.at(i);
+	qreal x = node->scenePos().rx();
+	qreal y = node->scenePos().ry();
+	if (x > maxx)
+	    maxx = x;
+	else if (x < minx)
+	    minx = x;
+	if (y > maxy)
+	    maxy = y;
+	else if (y < minx)
+	    miny = y;
     }
 
-    qreal midxInch = (maxx + minx) / (currentPhysicalDPI_X * 2.);
-    qreal midyInch = (maxy + miny) / (currentPhysicalDPI_Y * 2.);
+    qreal midxInch = (maxx + minx) / (screenPhysicalDPI_X * 2.);
+    qreal midyInch = (maxy + miny) / (screenPhysicalDPI_Y * 2.);
     for (int i = 0; i < nodes.count(); i++)
     {
-        // TODO: s/,/\\/ before writing out label.  Undo this when reading.
-        Node * node = nodes.at(i);
-        outfile << "# Node " + QString::number(i) + ":\n";
-        outfile << QString::number(node->scenePos().rx() / currentPhysicalDPI_X
-                                   - midxInch,
-                                   'f', VP_PREC_GRPHC) << ","
-                << QString::number(node->scenePos().ry() / currentPhysicalDPI_Y
-                                   - midyInch,
-                                   'f', VP_PREC_GRPHC) << ", "
-                << QString::number(node->getDiameter()) << ", "
-                << QString::number(node->getPenWidth()) << ", "
-                << QString::number(node->getRotation()) << ", "
-                << QString::number(node->getFillColour().redF()) << ","
-                << QString::number(node->getFillColour().greenF()) << ","
-                << QString::number(node->getFillColour().blueF()) << ", "
-                << QString::number(node->getLineColour().redF()) << ","
-                << QString::number(node->getLineColour().greenF()) << ","
-                << QString::number(node->getLineColour().blueF());
-        // Output the node label and its font size if and only if
-        // there is a node label.
-        if (node->getLabel().length() > 0 || outputExtra)
-        {
-            outfile << ", "
-                    << QString::number(node->getLabelSize())
-                    << ","
-                    << node->getLabel();
-        }
-        outfile << "\n";
+	// TODO: s/,/\\/ before writing out label.  Undo this when reading.
+	Node * node = nodes.at(i);
+	outfile << "# Node " + QString::number(i) + ":\n";
+	outfile << QString::number(node->scenePos().rx() / screenPhysicalDPI_X
+				   - midxInch,
+				   'f', VP_PREC_GRPHC) << ","
+		<< QString::number(node->scenePos().ry() / screenPhysicalDPI_Y
+				   - midyInch,
+				   'f', VP_PREC_GRPHC) << ", "
+		<< QString::number(node->getDiameter()) << ", "
+		<< QString::number(node->getRotation()) << ", "
+		<< QString::number(node->getFillColour().redF()) << ","
+		<< QString::number(node->getFillColour().greenF()) << ","
+		<< QString::number(node->getFillColour().blueF()) << ", "
+		<< QString::number(node->getLineColour().redF()) << ","
+		<< QString::number(node->getLineColour().greenF()) << ","
+		<< QString::number(node->getLineColour().blueF());
+	// Output the node label and its font size if and only if
+	// there is a node label.
+	if (node->getLabel().length() > 0 || outputExtra)
+	{
+	    outfile << ", "
+		    << QString::number(node->getLabelSize())
+		    << ","
+		    << node->getLabel();
+	}
+	outfile << "\n";
     }
 
     outfile << "\n# Edge descriptions; the format is:\n"
-            << "# u, v, dest_radius, source_radius, rotation, pen_width,\n"
-            << "#       line r,g,b[, label font size, label]\n";
-
+	    << "# u, v, dest_radius, source_radius, rotation, pen_width,\n"
+	    << "#       line r,g,b[, label font size, label]\n";
+	    
     for (int i = 0; i < nodes.count(); i++)
     {
-        for (int j = 0; j < nodes.at(i)->edgeList.count(); j++)
-        {
-            Edge * edge = nodes.at(i)->edgeList.at(j);
-            if (outputExtra)
-            {
-                outfile << "# Looking at i, j = "
-                        << QString::number(i) << ", " << QString::number(j)
-                        << "  ->  src, dst = "
-                        << QString::number(edge->sourceNode()->getID())
-                        << ", "
-                        << QString::number(edge->destNode()->getID())
-                        << "\n";
-            }
+	for (int j = 0; j < nodes.at(i)->edgeList.count(); j++)
+	{
+	    Edge * edge = nodes.at(i)->edgeList.at(j);
+	    if (outputExtra)
+	    {
+		outfile << "# Looking at i, j = "
+			<< QString::number(i) << ", " << QString::number(j)
+			<< "  ->  src, dst = "
+			<< QString::number(edge->sourceNode()->getID())
+			<< ", "
+			<< QString::number(edge->destNode()->getID())
+			<< "\n";
+	    }
 
 	    int printThisOne = 0;
 	    int sourceID = edge->sourceNode()->getID();
@@ -1563,11 +1447,6 @@ saveGraphIc(QTextStream &outfile, QVector<Node *> nodes, bool outputExtra)
     return true;
 }
 
-void
-MainWindow::somethingChanged()
-{
-    promptSave = true;
-}
 
 
 /*
@@ -1588,54 +1467,54 @@ MainWindow::save_Graph()
     QString fileTypes = "";
 
     fileTypes += GRAPHiCS_SAVE_FILE ";;"
-        TIKZ_SAVE_FILE ";;"
-        EDGES_SAVE_FILE	";;";
+	TIKZ_SAVE_FILE ";;"
+	EDGES_SAVE_FILE	";;";
 
     foreach (QByteArray format, QImageWriter::supportedImageFormats())
     {
-        // Remove offensive and redundant file types.
-        // Even with these, there still may a confusing number of choices.
-        if (QString(format).toUpper() == "BMP")	    // Winblows bitmap
-            continue;
-        if (QString(format).toUpper() == "CUR")	    // Winblows cursor
-            continue;
-        if (QString(format).toUpper() == "DDS")	    // Winblows directdraw sfc
-            continue;
-        if (QString(format).toUpper() == "ICO")	    // Winblows icon
-            continue;
-        if (QString(format).toUpper() == "ICNS")    // Apple icon
-            continue;
-        if (QString(format).toUpper() == "PBM")	    // Portable bitmap
-            continue;
-        if (QString(format).toUpper() == "PGM")	    // Portable gray map
-            continue;
-        if (QString(format).toUpper() == "PPM")	    // Portable pixmap
-            continue;
-        if (QString(format).toUpper() == "XBM")	    // X bitmap
-            continue;
-        if (QString(format).toUpper() == "XBM")	    // X bitmap
-            continue;
-        if (QString(format).toUpper() == "XPM")	    // X pixmap
-            continue;
-        if (QString(format).toUpper() == "WBMP")    // wireless bitmap
-            continue;
-        if (QString(format).toUpper() == "TIFF")    // Just list "tif"
-            continue;
-        if (QString(format).toUpper() == "JPEG")    // Just list "jpg"
-            continue;
-        fileTypes += tr("%1 (*.%2);;").arg(QString(format).toUpper(),
-                                           QString(format).toLower());
+	// Remove offensive and redundant file types.
+	// Even with these, there still may a confusing number of choices.
+	if (QString(format).toUpper() == "BMP")	    // Winblows bitmap
+	    continue;
+	if (QString(format).toUpper() == "CUR")	    // Winblows cursor
+	    continue;
+	if (QString(format).toUpper() == "DDS")	    // Winblows directdraw sfc
+	    continue;
+	if (QString(format).toUpper() == "ICO")	    // Winblows icon
+	    continue;
+	if (QString(format).toUpper() == "ICNS")    // Apple icon
+	    continue;
+	if (QString(format).toUpper() == "PBM")	    // Portable bitmap
+	    continue;
+	if (QString(format).toUpper() == "PGM")	    // Portable gray map
+	    continue;
+	if (QString(format).toUpper() == "PPM")	    // Portable pixmap
+	    continue;
+	if (QString(format).toUpper() == "XBM")	    // X bitmap 
+	    continue;
+	if (QString(format).toUpper() == "XBM")	    // X bitmap 
+	    continue;
+	if (QString(format).toUpper() == "XPM")	    // X pixmap
+	    continue;
+	if (QString(format).toUpper() == "WBMP")    // wireless bitmap
+	    continue;
+	if (QString(format).toUpper() == "TIFF")    // Just list "tif"
+	    continue;
+	if (QString(format).toUpper() == "JPEG")    // Just list "jpg"
+	    continue;
+	fileTypes += tr("%1 (*.%2);;").arg(QString(format).toUpper(),
+					   QString(format).toLower());
     }
 
     fileTypes += SVG_SAVE_FILE ";;"
-        "All Files (*)";
+	"All Files (*)";
 
     QString selectedFilter;
     QString fileName = QFileDialog::getSaveFileName(this, "Save graph",
-                                                    fileDirectory, fileTypes,
-                                                    &selectedFilter);
+						    fileDirectory, fileTypes,
+						    &selectedFilter);
     if (fileName.isNull())
-        return false;
+	return false;
 
 #ifdef __linux__
     // Stupid, stupid Qt file browser works differently on different OSes.
@@ -1644,8 +1523,8 @@ MainWindow::save_Graph()
     QString ext = fi.suffix();
     if (ext.isNull())
     {
-        int start = selectedFilter.indexOf("*") + 1;
-        int end = selectedFilter.indexOf(")");
+	int start = selectedFilter.indexOf("*") + 1;
+	int end = selectedFilter.indexOf(")");
 
 	if (start < 0 || end < 0)
 	{
@@ -1666,36 +1545,30 @@ MainWindow::save_Graph()
     // TODO: should we use QFileInfo(fileName).extension().lower();
     bool saveStatus = ui->snapToGrid_checkBox->isChecked();
     if (saveStatus)
-        ui->canvas->snapToGrid(false);
+	ui->canvas->snapToGrid(false);
 
     if (selectedFilter != GRAPHiCS_SAVE_FILE
-        && selectedFilter != TIKZ_SAVE_FILE
-        && selectedFilter != EDGES_SAVE_FILE
-        && selectedFilter != SVG_SAVE_FILE)
+	&& selectedFilter != TIKZ_SAVE_FILE
+	&& selectedFilter != EDGES_SAVE_FILE
+	&& selectedFilter != SVG_SAVE_FILE)
     {
-        ui->canvas->scene()->clearSelection();
-        ui->canvas->scene()->invalidate(ui->canvas->scene()->itemsBoundingRect(),
-                                        ui->canvas->scene()->BackgroundLayer);
+	ui->canvas->scene()->clearSelection();
+	ui->canvas->scene()->invalidate(ui->canvas->scene()->itemsBoundingRect(),
+					ui->canvas->scene()->BackgroundLayer);
 
 	QPixmap * image = new QPixmap(ui->canvas->scene()
 				      ->itemsBoundingRect().size().toSize());
 	if (selectedFilter == "JPG (*.jpg)")
 	{
-	    if (settings.contains("jpgBgColour"))
-	    {
-		QColor color = settings.value("jpgBgColour").toString();
-		image->fill(color);
-	    }
+	    if (settings.contains("jpgColor")) // Where should we ask for bg color?
+		image->fill(settings.value("jpgColor").toString());
 	    else
 		image->fill(Qt::white);
 	}
 	else
 	{
-	    if (settings.contains("otherImageBgColour"))
-	    {
-		QColor color = settings.value("otherImageBgColour").toString();
-		image->fill(color);
-	    }
+	    if (settings.contains("elseColor")) // Needs better name
+		image->fill(settings.value("elseColor").toString());
 	    else
 		image->fill(Qt::transparent);
 	}
@@ -1717,7 +1590,6 @@ MainWindow::save_Graph()
 	image->save(fileName); // Requires file extension or it won't save :-/
 	ui->canvas->snapToGrid(saveStatus);
 	ui->canvas->update();
-	promptSave = false;
 	return true;
     }
 
@@ -1730,60 +1602,57 @@ MainWindow::save_Graph()
     outputFile.open(QIODevice::WriteOnly);
     if (!outputFile.isOpen())
     {
-        QMessageBox::information(0, "Error",
-                                 "Unable to open " + fileName + " for output!");
-        return false;
+	QMessageBox::information(0, "Error",
+				 "Unable to open " + fileName + " for output!");
+	return false;
     }
 
     QTextStream outStream(&outputFile);
 
     foreach (QGraphicsItem * item, ui->canvas->scene()->items())
     {
-        if (item->type() == Node::Type)
-        {
-            Node * node = qgraphicsitem_cast<Node *>(item);
-            node->setID(numOfNodes);
-            numOfNodes++;
-            nodes.append(node);
-        }
+	if (item->type() == Node::Type)
+	{
+	    Node * node = qgraphicsitem_cast<Node *>(item);
+	    node->setID(numOfNodes);
+	    numOfNodes++;
+	    nodes.append(node);
+	}
     }
 
     if (selectedFilter == GRAPHiCS_SAVE_FILE)
     {
-        bool success = saveGraphIc(outStream, nodes, false);
-        outputFile.close();
-        ui->canvas->snapToGrid(saveStatus);
-        ui->canvas->update();
-        QFileInfo fi(fileName);
-        ui->graphType_ComboBox->insertItem(ui->graphType_ComboBox->count(),
-                                           fi.baseName());
-        promptSave = false;
-        return true && success;
+	bool success = saveGraphIc(outStream, nodes, false);
+	outputFile.close();
+	ui->canvas->snapToGrid(saveStatus);
+	ui->canvas->update();
+	QFileInfo fi(fileName);
+	ui->graphType_ComboBox->insertItem(ui->graphType_ComboBox->count(),
+					   fi.baseName());
+	return true && success;
     }
 
     if (selectedFilter == EDGES_SAVE_FILE)
     {
-        bool success = saveEdgelist(outStream, nodes);
-        outputFile.close();
-        ui->canvas->snapToGrid(saveStatus);
-        ui->canvas->update();
-        promptSave = false;
-        return true && success;
+	bool success = saveEdgelist(outStream, nodes);
+	outputFile.close();
+	ui->canvas->snapToGrid(saveStatus);
+	ui->canvas->update();
+	return true && success;
     }
 
     if (selectedFilter == TIKZ_SAVE_FILE)
     {
-        bool success = saveTikZ(outStream, nodes);
-        outputFile.close();
-        ui->canvas->snapToGrid(saveStatus);
-        ui->canvas->update();
-        promptSave = false;
-        return true && success;
+	bool success = saveTikZ(outStream, nodes);
+	outputFile.close();
+	ui->canvas->snapToGrid(saveStatus);
+	ui->canvas->update();
+	return true && success;
     }
 
     if (selectedFilter == SVG_SAVE_FILE)
     {
-        QSvgGenerator svgGen;
+	QSvgGenerator svgGen;
 
 	svgGen.setFileName(fileName);
 	svgGen.setSize(ui->canvas->scene()
@@ -1798,13 +1667,12 @@ MainWindow::save_Graph()
 				    Qt::IgnoreAspectRatio);
 	ui->canvas->snapToGrid(saveStatus);
 	ui->canvas->update();
-	promptSave = false;
 	return true;
     }
 
     // ? Should not get here!
     qDebug() << "save_Graph(): Unexpected output filter in "
-             << "MainWindow::save_Graph()!";
+	     << "MainWindow::save_Graph()!";
     return false;
 }
 
@@ -1827,11 +1695,11 @@ bool
 MainWindow::load_Graphic_File()
 {
     QString fileName = QFileDialog::getOpenFileName(this,
-                                                    "Load Graph-ics File",
-                                                    fileDirectory,
-                                                    GRAPHiCS_SAVE_FILE);
+						    "Load Graph-ics File",
+						    fileDirectory,
+						    GRAPHiCS_SAVE_FILE);
     if (! fileName.isNull())
-        select_Custom_Graph(fileName);
+	select_Custom_Graph(fileName);
 
     return true;
 }
@@ -1859,7 +1727,7 @@ MainWindow::load_Graphic_Library()
     QDirIterator dirIt(fileDirectory, QDirIterator::Subdirectories);
     while (dirIt.hasNext())
     {
-        dirIt.next();
+	dirIt.next();
 #ifdef DEBUG2
 	if (QFileInfo(dirIt.filePath()).isFile())
 	    qDeb() << "MW::load_Graphic_Library(): suffix of"
@@ -1898,8 +1766,8 @@ MainWindow::select_Custom_Graph(QString graphName)
 {
     if (graphName.isNull())
     {
-        qDebug() << "MW::select_Custom_Graph(): graphName is NULL!! ??";
-        return;
+	qDebug() << "MW::select_Custom_Graph(): graphName is NULL!! ??";
+	return;
     }
 
     qDeb() << "MW::select_Custom_Graph(): graphName is\n\t" << graphName;
@@ -1908,13 +1776,13 @@ MainWindow::select_Custom_Graph(QString graphName)
 
     if (!file.open(QIODevice::ReadOnly))
     {
-        QMessageBox::information(0,
-                                 "Error",
-                                 "File: " + graphName
-                                 + ": " + file.errorString());
-        // Reset the combo box to the "Select Graph Type" item (#0).
-        ui->graphType_ComboBox->setCurrentIndex(BasicGraphs::Nothing);
-        return;
+	QMessageBox::information(0,
+				 "Error",
+				 "File: " + graphName
+				 + ": " + file.errorString());
+	// Reset the combo box to the "Select Graph Type" item (#0).
+	ui->graphType_ComboBox->setCurrentIndex(BasicGraphs::Nothing);
+	return;
     }
 
     QTextStream in(&file);
@@ -1926,52 +1794,52 @@ MainWindow::select_Custom_Graph(QString graphName)
     // so they take into account both the node center location and the
     // node diameter.  (These are the two values stored in the .grphc file.)
     qreal minX = 1E10, maxX = -1E10, minY = 1E10, maxY = -1E10;
-    // These 4 variables hold the radii of the vertices which give the
+    // These 4 variables hold the radii of the vertices which give the 
     // extremal positions stored above.
     qreal minXr = 0, maxXr = 0, minYr = 0, maxYr = 0;
 
     while (!in.atEnd())
     {
-        QString line = in.readLine();
-        QString simpLine = line.simplified();
-        if (simpLine.isEmpty())
-        {
-            // Allow visually blank lines
-        }
-        else if (simpLine.at(0).toLatin1() == '#')
-        {
-            // Allow comments where first non-white is '#'.
-            // TODO: Should we save these comments somewhere?
-        }
-        else if (numOfNodes < 0)
-        {
-            bool ok;
-            numOfNodes = line.toInt(&ok);
-            // TODO: do we want to allow 0-node graphs?
-            // Theoretically yes, but practically, no.
-            if (! ok || numOfNodes < 0)
-            {
-                QMessageBox::information(0, "Error",
-                                         "The file " + graphName
-                                         + " has an invalid number of "
-                                         "nodes.  Thus I can not read "
-                                         "this file.");
-                file.close();
-                return;
-            }
-        }
-        else if (i < numOfNodes)
-        {
-            QStringList fields = line.split(",");
+	QString line = in.readLine();
+	QString simpLine = line.simplified();
+	if (simpLine.isEmpty())
+	{
+	    // Allow visually blank lines
+	}
+	else if (simpLine.at(0).toLatin1() == '#')
+	{
+	    // Allow comments where first non-white is '#'.
+	    // TODO: Should we save these comments somewhere?
+	}
+	else if (numOfNodes < 0)
+	{
+	    bool ok;
+	    numOfNodes = line.toInt(&ok);
+	    // TODO: do we want to allow 0-node graphs?
+	    // Theoretically yes, but practically, no.
+	    if (! ok || numOfNodes < 0)
+	    {
+		QMessageBox::information(0, "Error",
+					 "The file " + graphName
+					 + " has an invalid number of "
+					 "nodes.  Thus I can not read "
+					 "this file.");
+		file.close();
+		return;
+	    }
+	}
+	else if (i < numOfNodes)
+	{
+	    QStringList fields = line.split(",");
 
 	    // Nodes may or may not have label info.  Accept both.
-	    // Nominally, we want 11 or 13 (and this assumes we don't
+	    // Nominally, we want 10 or 12 (and this assumes we don't
 	    // want to record the label size if there is no label,
 	    // which is possibly not what we will eventually realize
 	    // we want).  But to avoid complex quoting of commas in
-	    // labels, we just glue all the fields past #12 into the
+	    // labels, we just glue all the fields past #11 into the
 	    // label.
-	    if (fields.count() < 11 || fields.count() == 12)
+	    if (fields.count() < 10 || fields.count() == 11)
 	    {
 		QMessageBox::information(0, "Error",
 					 "Node " + QString::number(i)
@@ -1990,11 +1858,9 @@ MainWindow::select_Custom_Graph(QString graphName)
 	    qreal y = fields.at(1).toDouble();
 	    qreal d = fields.at(2).toDouble();
 	    qreal r = d / 2.;
-	    qreal t = fields.at(3).toDouble();
-	    node->setPos(x * currentPhysicalDPI_X, y * currentPhysicalDPI_Y);
+	    node->setPos(x * screenPhysicalDPI_X, y * screenPhysicalDPI_Y);
 	    node->setDiameter(d);
-	    node->setPenWidth(t);
-	    node->setRotation(fields.at(4).toDouble());
+	    node->setRotation(fields.at(3).toDouble());
 	    node->setID(i++);
 	    // Record information about the extremal nodes for use below.
 	    if (x - r < minX)
@@ -2021,23 +1887,23 @@ MainWindow::select_Custom_Graph(QString graphName)
 		  "Y [%.4f, %.4f]", i-1, x, y, minX, maxX, minY, maxY);
 
 	    QColor fillColor;
-	    fillColor.setRedF(fields.at(5).toDouble());
-	    fillColor.setGreenF(fields.at(6).toDouble());
-	    fillColor.setBlueF(fields.at(7).toDouble());
+	    fillColor.setRedF(fields.at(4).toDouble());
+	    fillColor.setGreenF(fields.at(5).toDouble());
+	    fillColor.setBlueF(fields.at(6).toDouble());
 	    node->setFillColour(fillColor);
 
 	    QColor lineColor;
-	    lineColor.setRedF(fields.at(8).toDouble());
-	    lineColor.setGreenF(fields.at(9).toDouble());
-	    lineColor.setBlueF(fields.at(10).toDouble());
+	    lineColor.setRedF(fields.at(7).toDouble());
+	    lineColor.setGreenF(fields.at(8).toDouble());
+	    lineColor.setBlueF(fields.at(9).toDouble());
 	    node->setLineColour(lineColor);
-	    if (fields.count() >= 13)
+	    if (fields.count() >= 12)
 	    {
 		// If the label has one or more commas, we must glue
 		// the fields back together.
-		node->setNodeLabelSize(fields.at(11).toFloat());
-		QString l = fields.at(12);
-		for (int i = 13; i < fields.count(); i++)
+		node->setNodeLabelSize(fields.at(10).toFloat());
+		QString l = fields.at(11);
+		for (int i = 12; i < fields.count(); i++)
 		    l += "," + fields.at(i);
 		node->setNodeLabel(l);
 	    }
@@ -2100,31 +1966,31 @@ MainWindow::select_Custom_Graph(QString graphName)
     qreal width = (maxX - maxXr) - (minX + minXr);
     qreal height = (maxY - maxYr) - (minY + minYr);
     qDebu("    X: [%.4f, %.4f], Xr min %.4f, max %.4f",
-          minX, maxX, minXr, maxXr);
+	  minX, maxX, minXr, maxXr);
     qDebu("    Y: [%.4f, %.4f], Yr min %.4f, max %.4f",
-          minY, maxY, minYr, maxYr);
+	  minY, maxY, minYr, maxYr);
     qDebu("    width %.4f, height %.4f", width, height);
     qDeb() << "    minX = " << minX << ", maxX = "
-           << maxX << "\n\tminY = " << minY << ", maxY = " << maxY
-           << "; width = " << width << " and height = " << height;
+	   << maxX << "\n\tminY = " << minY << ", maxY = " << maxY
+	   << "; width = " << width << " and height = " << height;
     for (int i = 0; i < nodes.count(); i++)
     {
-        Node * n = nodes.at(i);
-        n->setPreviewCoords(n->x() / width / currentPhysicalDPI_X,
-                            n->y() / height / currentPhysicalDPI_Y);
-        qDebu("    nodes[%s] coords: screen (%.4f, %.4f); "
-              "preview set to (%.4f, %.4f)", n->getLabel().toLatin1().data(),
-              n->x(), n->y(), n->getPreviewX(), n->getPreviewY());
+	Node * n = nodes.at(i);
+	n->setPreviewCoords(n->x() / width / screenPhysicalDPI_X,
+			    n->y() / height / screenPhysicalDPI_Y);
+	qDebu("    nodes[%s] coords: screen (%.4f, %.4f); "
+	      "preview set to (%.4f, %.4f)", n->getLabel().toLatin1().data(),
+	      n->x(), n->y(), n->getPreviewX(), n->getPreviewY());
     }
-
+	
     qDeb() << "MW::select_Custom_Graph: graph->childItems().length() ="
-           << graph->childItems().length();
+	   << graph->childItems().length();
 
     // Apparently we have to center the graph in the viewport.
     // (Presumably this is because the node positions are relative to
     // their parent, the graph?)
     qDeb() << "    graph current position is " << graph->x() << ", "
-           << graph->y();
+	   << graph->y();
     //  graph->setPos(mapToScene(viewport()->rect().center()));
     // "viewport() is unknown in this context.  For now, kludge the
     // centering of the graph as follows.  Those are the numbers from
@@ -2134,7 +2000,7 @@ MainWindow::select_Custom_Graph(QString graphName)
     // clear to me how those numbers get set.
     graph->setPos(49, 15);
     qDeb() << "    graph NEW position is " << graph->x() << ", "
-           << graph->y();
+	   << graph->y(); 
     graph->setRotation(-1 * ui->graphRotation->value());
 
     ui->preview->scene()->clear();
@@ -2165,30 +2031,30 @@ MainWindow::style_Graph(enum widget_ID what_changed)
 
     foreach (QGraphicsItem * item, ui->preview->scene()->items())
     {
-        if (item->type() == Graph::Type)
-        {
-            Graph * graphItem =	 qgraphicsitem_cast<Graph *>(item);
-            ui->preview->Style_Graph(
-                graphItem,
-                ui->graphType_ComboBox->currentIndex(),
-                what_changed,
-                ui->nodeDiameter->value(),
-                ui->NodeLabel1->text(),
-                ui->NodeLabel2->text(),
-                ui->NumLabelCheckBox->isChecked(),
-                ui->NodeLabelSize->value(),
-                ui->NodeFillColor->palette().window().color(),
-                ui->NodeOutlineColor->palette().window().color(),
-                ui->edgeThickness->value(),
-                ui->EdgeLabel->text(),
-                ui->EdgeLabelSize->value(),
-                ui->EdgeLineColor->palette().window().color(),
-                ui->graphWidth->value(),
-                ui->graphHeight->value(),
-                ui->graphRotation->value(),
-                ui->NumLabelStart->value(),
-                ui->nodeThickness->value());
-        }
+	if (item->type() == Graph::Type)
+	{
+	    Graph * graphItem =	 qgraphicsitem_cast<Graph *>(item);
+	    ui->preview->Style_Graph(
+		graphItem,
+		ui->graphType_ComboBox->currentIndex(),
+		what_changed,
+		ui->nodeSize->value(),
+		ui->NodeLabel1->text(),
+		ui->NodeLabel2->text(),
+		ui->NumLabelCheckBox->isChecked(),
+		ui->NodeLabelSize->value(),
+		ui->NodeFillColor->palette().window().color(),
+		ui->NodeOutlineColor->palette().window().color(),
+		ui->edgeSize->value(),
+		ui->EdgeLabel->text(),
+		ui->EdgeLabelSize->value(),
+		ui->EdgeLineColor->palette().window().color(),
+		ui->graphWidth->value(),
+		ui->graphHeight->value(), 
+		ui->graphRotation->value(),
+		ui->NumLabelStart->value(),
+		ui->nodeThickness->value());
+	}
     }
 }
 
@@ -2240,17 +2106,17 @@ MainWindow::generate_Graph(enum widget_ID changed_widget)
 
     if (ui->preview->items().count() == 0)
     {
-        qDeb() << "\tpreview is empty, resetting cGI to -1";
-        currentGraphIndex = -1;
+	qDeb() << "\tpreview is empty, resetting cGI to -1";
+	currentGraphIndex = -1;
     }
 
     if (graphIndex < BasicGraphs::Count)
     {
-        int numOfNodes1 = ui->numOfNodes1->value();
-        int numOfNodes2 = ui->numOfNodes2->value();
-        qreal nodeDiameter = ui->nodeDiameter->value();
-        bool drawEdges = ui->complete_checkBox->isChecked();
-
+	int numOfNodes1 = ui->numOfNodes1->value();
+	int numOfNodes2 = ui->numOfNodes2->value();
+	qreal nodeDiameter = ui->nodeSize->value();
+	bool drawEdges = ui->complete_checkBox->isChecked();	
+	
 	if (currentGraphIndex != graphIndex
 	    || currentNumOfNodes1 != numOfNodes1
 	    || currentNumOfNodes2 != numOfNodes2
@@ -2277,42 +2143,29 @@ MainWindow::generate_Graph(enum widget_ID changed_widget)
     }
     else
     {
-        if (graphIndex != currentGraphIndex)
-        {
-            qDeb() << "\tmaking a '"
-                   << ui->graphType_ComboBox->currentText()
-                   << "' graph";
-            select_Custom_Graph(fileDirectory + "/"
-                                + ui->graphType_ComboBox->currentText()
-                                + "." + GRAPHiCS_FILE_EXTENSION);
-        }
-        else
-        {
-            qDeb() << "\tsame library graph as last time, just style it.";
-            this->style_Graph(changed_widget);
-        }
+	if (graphIndex != currentGraphIndex)
+	{
+	    qDeb() << "\tmaking a '"
+		   << ui->graphType_ComboBox->currentText()
+		   << "' graph";
+	    select_Custom_Graph(fileDirectory + "/"
+				+ ui->graphType_ComboBox->currentText()
+				+ "." + GRAPHiCS_FILE_EXTENSION);
+	}
+	else
+	{
+	    qDeb() << "\tsame library graph as last time, just style it.";
+	    this->style_Graph(changed_widget);
+	}
     }
     currentGraphIndex = graphIndex;
-
-    // Node and edge labels are focusable (but not editable) so lets fix that
-    if (!ui->editMode_radioButton->isChecked()) //Unnecessary but good practice
-    {
-        foreach (QGraphicsItem * item, ui->preview->scene()->items())
-        {
-            if (item->type() == HTML_Label::Type)
-            {
-                item->setFlag(QGraphicsItem::ItemIsFocusable,false);
-                item->setFlag(QGraphicsItem::ItemIsSelectable,false);//Useless?
-            }
-        }
-    }
 }
 
 
 
 /*
  * Name:	on_NodeOutlineColor_clicked()
- * Purpose:
+ * Purpose:	
  * Arguments:	None.
  * Outputs:	Nothing.
  * Modifies:	ui->NodeOutlineColor.
@@ -2331,13 +2184,13 @@ MainWindow::on_NodeOutlineColor_clicked()
         return;
 
     QString s("background: #"
-              + QString(color.red() < 16 ? "0" : "")
-              + QString::number(color.red(), 16)
-              + QString(color.green() < 16 ? "0" : "")
-              + QString::number(color.green(), 16)
-              + QString(color.blue() < 16 ? "0" : "")
-              + QString::number(color.blue(), 16) + ";"
-              BUTTON_STYLE);
+	      + QString(color.red() < 16 ? "0" : "")
+	      + QString::number(color.red(), 16)
+	      + QString(color.green() < 16 ? "0" : "")
+	      + QString::number(color.green(), 16)
+	      + QString(color.blue() < 16 ? "0" : "")
+	      + QString::number(color.blue(), 16) + ";"
+	      BUTTON_STYLE);
     qDeb() << "MW::on_NodeOutlineColor_clicked(): outline colour set to" << s;
     ui->NodeOutlineColor->setStyleSheet(s);
     ui->NodeOutlineColor->update();
@@ -2347,7 +2200,7 @@ MainWindow::on_NodeOutlineColor_clicked()
 
 /*
  * Name:	on_NodeFillColor_clicked()
- * Purpose:
+ * Purpose:	
  * Arguments:	None.
  * Outputs:	Nothing.
  * Modifies:	ui->NodeFillColor
@@ -2366,13 +2219,13 @@ MainWindow::on_NodeFillColor_clicked()
         return;
 
     QString s("background: #"
-              + QString(color.red() < 16 ? "0" : "")
-              + QString::number(color.red(), 16)
-              + QString(color.green() < 16 ? "0" : "")
-              + QString::number(color.green(), 16)
-              + QString(color.blue() < 16 ? "0" : "")
-              + QString::number(color.blue(), 16) + ";"
-              BUTTON_STYLE);
+	      + QString(color.red() < 16 ? "0" : "")
+	      + QString::number(color.red(), 16)
+	      + QString(color.green() < 16 ? "0" : "")
+	      + QString::number(color.green(), 16)
+	      + QString(color.blue() < 16 ? "0" : "")
+	      + QString::number(color.blue(), 16) + ";"
+	      BUTTON_STYLE);
     qDeb() << "MW::on_NodeFillColor_clicked(): fill colour set to " << s;
     ui->NodeFillColor->setStyleSheet(s);
     ui->NodeFillColor->update();
@@ -2401,13 +2254,13 @@ MainWindow::on_EdgeLineColor_clicked()
         return;
 
     QString s("background: #"
-              + QString(color.red() < 16 ? "0" : "")
-              + QString::number(color.red(), 16)
-              + QString(color.green() < 16 ? "0" : "")
-              + QString::number(color.green(), 16)
-              + QString(color.blue() < 16 ? "0" : "")
-              + QString::number(color.blue(), 16) + ";"
-              BUTTON_STYLE);
+	      + QString(color.red() < 16 ? "0" : "")
+	      + QString::number(color.red(), 16)
+	      + QString(color.green() < 16 ? "0" : "")
+	      + QString::number(color.green(), 16)
+	      + QString(color.blue() < 16 ? "0" : "")
+	      + QString::number(color.blue(), 16) + ";"
+	      BUTTON_STYLE);
     qDeb() << "MW::on_EdgeLineColor_clicked(): edge line colour set to" << s;
     ui->EdgeLineColor->setStyleSheet(s);
     ui->EdgeLineColor->update();
@@ -2469,7 +2322,7 @@ MainWindow::set_Font_Sizes()
     ui->colorLabel->setFont(font);
 
     font.setPointSize(SUB_SUB_TITLE_SIZE);
-    ui->edgeThicknessLabel->setFont(font);
+    ui->thicknessLabel->setFont(font);
     ui->rotationLabel->setFont(font);
     ui->widthLabel->setFont(font);
     ui->heightLabel->setFont(font);
@@ -2479,12 +2332,9 @@ MainWindow::set_Font_Sizes()
     ui->textSizeLabel_2->setFont(font);
     ui->fillLabel->setFont(font);
     ui->outlineLabel->setFont(font);
-    ui->nodeThicknessLabel->setFont(font);
-    ui->nodeDiameterLabel->setFont(font);
+    ui->ptLabel->setFont(font);
+    ui->inchesLabel->setFont(font);
     ui->numLabel->setFont(font);
-    ui->zoomDisplay->setFont(font);
-    ui->zoomDisplay_2->setFont(font);
-    ui->clearCanvas->setFont(font);
 
     font.setPointSize(SUB_SUB_TITLE_SIZE - 1);
     ui->graphType_ComboBox->setFont(font);
@@ -2502,9 +2352,9 @@ MainWindow::set_Font_Sizes()
     ui->nodeThickness->setFont(font);
     ui->graphRotation->setFont(font);
     ui->EdgeLabelSize->setFont(font);
-    ui->edgeThickness->setFont(font);
+    ui->edgeSize->setFont(font);
     ui->NodeLabelSize->setFont(font);
-    ui->nodeDiameter->setFont(font);
+    ui->nodeSize->setFont(font);
 }
 
 
@@ -2517,42 +2367,26 @@ MainWindow::set_Font_Sizes()
  * Returns:
  * Assumptions:
  * Bugs:
- * Notes:       Qt will scale fonts automatically according to logicalDPI
- *              so we must handraulically scale some of the widgets that don't
- *              scale well (or at all).
+ * Notes:       Still missing height corrections
  */
 
 void
 MainWindow::set_Interface_Sizes()
 {
-#ifdef __APPLE__
-    #define SYSTEM_DEFAULT_LOGICAL_DPI 72
-#else
-    #define SYSTEM_DEFAULT_LOGICAL_DPI 96
-#endif
     qreal scale;
-    // Do we ever need to scale down? Does anyone use a logical DPI below
-    // the system default? If so then maybe we should...?
-    if (screenLogicalDPI_X > SYSTEM_DEFAULT_LOGICAL_DPI)
-        scale = screenLogicalDPI_X / SYSTEM_DEFAULT_LOGICAL_DPI;
+    if (screenLogicalDPI_X > 96)
+        scale = screenLogicalDPI_X/96;
     else
         scale = 1;
+    //printf("Scale: %.3f\n", scale);
 
     // Total width of tabWidget borders
-    int borderWidth1 = (50 * scale);
+    int borderWidth1 = (50 * scale); // Which is better?
+    //int borderWidth1 = (ui->scrollAreaWidgetContents_2->width()
+      //                  - ui->tabWidget->width());
 
-    // Total width of mainWindow borders
+    // Total width of mainWindow borders (Not exactly precise yet)
     int borderWidth2 = (30 * scale);
-
-    // These three widgets need a max width or they misbehave, so we scale them
-    ui->EdgeLabel->setMaximumWidth(ui->EdgeLabel->maximumWidth()*scale);
-    ui->NodeLabel1->setMaximumWidth(ui->NodeLabel1->maximumWidth()*scale);
-    ui->NodeLabel2->setMaximumWidth(ui->NodeLabel2->maximumWidth()*scale);
-
-    // These widgets don't belong to any layout, so they won't scale automatically
-    ui->clearCanvas->resize(ui->clearCanvas->sizeHint());
-    ui->zoomDisplay->resize(ui->zoomDisplay->sizeHint());
-    ui->zoomDisplay_2->resize(ui->zoomDisplay_2->sizeHint());
 
     // Fix tabWidgets minimum width
     ui->tabWidget->setMinimumWidth(ui->scrollAreaWidgetContents_2->sizeHint().width()
@@ -2592,7 +2426,7 @@ void
 MainWindow::on_graphType_ComboBox_currentIndexChanged(int index)
 {
     qDeb() << "\nMW::on_graphType_ComboBox_currentIndexChanged("
-             << index << ") called";
+	     << index << ") called";
 
     // Here are the default settings.  Over-ride as needed below.
     ui->numOfNodes1->setSingleStep(1);
@@ -2614,84 +2448,84 @@ MainWindow::on_graphType_ComboBox_currentIndexChanged(int index)
     ui->complete_checkBox->show();
 
     if (index <= 0)
-        return;
+	return;
 
     switch (index)
     {
       case BasicGraphs::Antiprism:
       case BasicGraphs::Prism:
-        ui->numOfNodes1->setMinimum(6);
-        if (ui->numOfNodes1->value() % 2 == 1)
-            ui->numOfNodes1->setValue(ui->numOfNodes1->value() - 1);
-        ui->numOfNodes1->setSingleStep(2);
-        break;
+	ui->numOfNodes1->setMinimum(6);
+	if (ui->numOfNodes1->value() % 2 == 1)
+	    ui->numOfNodes1->setValue(ui->numOfNodes1->value() - 1);
+	ui->numOfNodes1->setSingleStep(2);
+	break;
 
       case BasicGraphs::BBTree:
       case BasicGraphs::Complete:
-        break;
+	break;
 
       case BasicGraphs::Bipartite:
-        ui->partitionLabel->setText("Partitions");
-        ui->numOfNodes2->show();
-        ui->NodeLabel2->show();
-        break;
+	ui->partitionLabel->setText("Partitions");
+	ui->numOfNodes2->show();
+	ui->NodeLabel2->show();
+	break;
 
       case BasicGraphs::Cycle:
       case BasicGraphs::Crown:
       case BasicGraphs::Helm:
-        ui->numOfNodes1->setMinimum(3);
-        break;
+	ui->numOfNodes1->setMinimum(3);
+	break;
 
       case BasicGraphs::Dutch_Windmill:
-        ui->partitionLabel->setText("Blades & Nodes");
-        ui->numOfNodes1->setMinimum(2);
-        ui->numOfNodes2->show();
-        ui->numOfNodes2->setMinimum(3);
-        if (ui->numOfNodes2->value() < 3)
-            ui->numOfNodes2->setValue(3);
-        // If someone really wants to scale this, why not?
-        // ui->graphWidth->hide();
-        // ui->widthLabel->hide();
-        // But start them off with a square drawing area:
-        ui->graphWidth->setValue(ui->graphHeight->value());
-        break;
+	ui->partitionLabel->setText("Blades & Nodes");
+	ui->numOfNodes1->setMinimum(2);
+	ui->numOfNodes2->show();
+	ui->numOfNodes2->setMinimum(3);
+	if (ui->numOfNodes2->value() < 3)
+	    ui->numOfNodes2->setValue(3);
+	// If someone really wants to scale this, why not?
+	// ui->graphWidth->hide();
+	// ui->widthLabel->hide();
+	// But start them off with a square drawing area:
+	ui->graphWidth->setValue(ui->graphHeight->value());
+	break;
 
       case BasicGraphs::Gear:
-        ui->numOfNodes1->setMinimum(6);
-        break;
+	ui->numOfNodes1->setMinimum(6);
+	break;
 
       case BasicGraphs::Grid:
-        ui->partitionLabel->setText("Columns & Rows");
-        ui->numOfNodes2->show();
-        break;
+	ui->partitionLabel->setText("Columns & Rows");
+	ui->numOfNodes2->show();
+	break;
 
       case BasicGraphs::Path:
-        ui->graphHeight->hide();
-        ui->heightLabel->hide();
-        break;
+	ui->graphHeight->hide();
+	ui->heightLabel->hide();
+	break;
 
       case BasicGraphs::Petersen:
-        ui->partitionLabel->setText("Nodes & Step");
-        ui->numOfNodes1->setMinimum(3);
-        ui->numOfNodes2->setValue(2);
-        ui->numOfNodes2->show();
-        // If someone really wants to scale this, why not?
-        // But start them off with a square drawing area:
-        ui->graphWidth->setValue(ui->graphHeight->value());
-        break;
+	ui->partitionLabel->setText("Nodes & Step");
+	ui->numOfNodes1->setMinimum(3);
+	ui->numOfNodes2->setValue(2);
+	ui->numOfNodes2->show();
+	// If someone really wants to scale this, why not?
+	// But start them off with a square drawing area:
+	ui->graphWidth->setValue(ui->graphHeight->value());
+	break;
 
       case BasicGraphs::Star:
       case BasicGraphs::Wheel:
-        ui->numOfNodes1->setMinimum(4);
-        break;
+	ui->numOfNodes1->setMinimum(4);
+	break;
 
       default:
-        // Should only get here if the graph is a library graph.
-        // In that case, hide the numOfNodes1 widget, since we can't
-        // change the number of nodes in a library graph from the
-        // preview pane.
-        qDeb() << "\tNot the index of a basic graph, assuming a library graph";
-        ui->numOfNodes1->hide();
+	// Should only get here if the graph is a library graph.
+	// In that case, hide the numOfNodes1 widget, since we can't
+	// change the number of nodes in a library graph from the
+	// preview pane.
+	qDeb() << "\tNot the index of a basic graph, assuming a library graph";
+	ui->numOfNodes1->hide();
     }
 }
 
@@ -2721,13 +2555,13 @@ MainWindow::on_numOfNodes1_valueChanged(int arg1)
 
     if (ui->graphType_ComboBox->currentIndex() == BasicGraphs::Petersen)
     {
-        if (ui->numOfNodes2->value()
-            > floor((ui->numOfNodes1->value() - 1) / 2))
-        {
-            qDeb() << "\tchanging ui->numOfNodes2 to 1 from "
-                   << ui->numOfNodes2->value();
-            ui->numOfNodes2->setValue(1);
-        }
+	if (ui->numOfNodes2->value()
+	    > floor((ui->numOfNodes1->value() - 1) / 2))
+	{
+	    qDeb() << "\tchanging ui->numOfNodes2 to 1 from "
+		   << ui->numOfNodes2->value();
+	    ui->numOfNodes2->setValue(1);
+	}
     }
 }
 
@@ -2757,13 +2591,13 @@ MainWindow::on_numOfNodes2_valueChanged(int arg1)
 
     if (ui->graphType_ComboBox->currentIndex() == BasicGraphs::Petersen)
     {
-        if (ui->numOfNodes2->value()
-            > floor((ui->numOfNodes1->value() - 1) / 2))
-        {
-            qDeb() << "\tchanging ui->numOfNodes2 to 1 from "
-                   << ui->numOfNodes2->value();
-            ui->numOfNodes2->setValue(1);
-        }
+	if (ui->numOfNodes2->value()
+	    > floor((ui->numOfNodes1->value() - 1) / 2))
+	{
+	    qDeb() << "\tchanging ui->numOfNodes2 to 1 from "
+		   << ui->numOfNodes2->value();
+	    ui->numOfNodes2->setValue(1);
+	}
     }
 }
 
@@ -2778,7 +2612,7 @@ MainWindow::on_numOfNodes2_valueChanged(int arg1)
  * Returns:	Nothing.
  * Assumptions: There are no other node params to tell the canvas about.
  * Bugs:	?
- * Notes:	Should start # be added to this?
+ * Notes:	?
  */
 
 void
@@ -2787,13 +2621,12 @@ MainWindow::nodeParamsUpdated()
     qDeb() << "MW::nodeParamsUpdated() called.";
 
     ui->canvas->setUpNodeParams(
-        ui->nodeDiameter->value(),
-        ui->NumLabelCheckBox->isChecked(),  // Useful?
-        ui->NodeLabel1->text(),		    // Useful?
-        ui->NodeLabelSize->value(),
-        ui->NodeFillColor->palette().window().color(),
-        ui->NodeOutlineColor->palette().window().color(),
-        ui->nodeThickness->value());
+	ui->nodeSize->value(),
+	ui->NumLabelCheckBox->isChecked(),  // Useful?
+	ui->NodeLabel1->text(),		    // Useful?
+	ui->NodeLabelSize->value(),
+	ui->NodeFillColor->palette().window().color(),
+	ui->NodeOutlineColor->palette().window().color());
 }
 
 
@@ -2814,13 +2647,13 @@ void
 MainWindow::edgeParamsUpdated()
 {
     qDeb() << "MW::edgeParamsUpdated() called; EdgeLabelSize is "
-           << ui->EdgeLabelSize->value();
+	   << ui->EdgeLabelSize->value();
 
     ui->canvas->setUpEdgeParams(
-        ui->edgeThickness->value(),
-        ui->EdgeLabel->text(),
-        ui->EdgeLabelSize->value(),
-        ui->EdgeLineColor->palette().window().color());
+	ui->edgeSize->value(),
+	ui->EdgeLabel->text(),
+	ui->EdgeLabelSize->value(),
+	ui->EdgeLineColor->palette().window().color());
 }
 
 
@@ -2889,53 +2722,51 @@ MainWindow::updateEditTab(int index)
     {
       case 0:
       {
-          QLayoutItem * wItem;
-          while ((wItem = ui->scrollAreaWidgetContents->layout()->takeAt(0))
-                 != 0)
-          {
-              if (wItem->widget())
-                  wItem->widget()->setParent(NULL);
-              delete wItem;
-          }
-          break;
+	  QLayoutItem * wItem;
+	  while ((wItem = ui->scrollAreaWidgetContents->layout()->takeAt(0))
+		 != 0)
+	  {
+	      if (wItem->widget())
+		  wItem->widget()->setParent(NULL);
+	      delete wItem;
+	  }
+	  break;
       }
       case 1:
       {
-          int i = 0;
-          foreach (QGraphicsItem * item, ui->canvas->scene()->items())
-          {
-              // Q: when would item be a 0 or nullptr?
-              if (item != 0 || item != nullptr)
-              {   // Only creates headers for "root" graphs
-                  if (item->type() == Graph::Type && item->parentItem() == nullptr
-                          && !item->childItems().isEmpty())
-                  {
-                      Graph * graph = qgraphicsitem_cast<Graph*>(item);
+	  int i = 0;
+	  foreach (QGraphicsItem * item, ui->canvas->scene()->items())
+	  {
+	      // Q: when would item be a 0 or nullptr?
+	      if (item != 0 || item != nullptr)
+	      {   // Only creates headers for "root" graphs
+		  if (item->type() == Graph::Type && item->parentItem() == nullptr
+			  && !item->childItems().isEmpty())
+		  {
+		      Graph * graph = qgraphicsitem_cast<Graph*>(item);
 
 		      QLabel * label = new QLabel("Graph");
 		      gridLayout->addWidget(label, i, 0);
 		      i++;
 
-		      QLabel * label2 = new QLabel("N width");
+		      QLabel * label2 = new QLabel("N Diam");
 		      gridLayout->addWidget(label2, i, 2);
 		      QLabel * label3 = new QLabel("E width");
 		      gridLayout->addWidget(label3, i+1, 2);
-		      QLabel * label4 = new QLabel("N diam");
+		      QLabel * label4 = new QLabel("Label");
 		      gridLayout->addWidget(label4, i, 3);
-		      QLabel * label5 = new QLabel("Label");
+		      QLabel * label5 = new QLabel("Text");
 		      gridLayout->addWidget(label5, i, 4);
-		      QLabel * label6 = new QLabel("Text");
-		      gridLayout->addWidget(label6, i, 5);
-		      QLabel * label7 = new QLabel("Size");
-		      gridLayout->addWidget(label7, i+1, 5);
-		      QLabel * label8 = new QLabel("Line");
-		      gridLayout->addWidget(label8, i, 6);
-		      QLabel * label9 = new QLabel("Color");
-		      gridLayout->addWidget(label9, i+1, 6);
-		      QLabel * label10 = new QLabel("Fill");
-		      gridLayout->addWidget(label10, i, 7);
-		      QLabel * label11 = new QLabel("Color");
-		      gridLayout->addWidget(label11, i+1, 7);
+		      QLabel * label6 = new QLabel("Size");
+		      gridLayout->addWidget(label6, i+1, 4);
+		      QLabel * label7 = new QLabel("Line");
+		      gridLayout->addWidget(label7, i, 5);
+		      QLabel * label8 = new QLabel("Color");
+		      gridLayout->addWidget(label8, i+1, 5);
+		      QLabel * label9 = new QLabel("Fill");
+		      gridLayout->addWidget(label9, i, 6);
+		      QLabel * label10 = new QLabel("Color");
+		      gridLayout->addWidget(label10, i+1, 6);
 		      i += 2;
 
 		      // Horrible, ugly connects....
@@ -2959,8 +2790,6 @@ MainWindow::updateEditTab(int index)
 			      label9, SLOT(deleteLater()));
 		      connect(graph, SIGNAL(destroyed(QObject*)),
 			      label10, SLOT(deleteLater()));
-		      connect(graph, SIGNAL(destroyed(QObject*)),
-			      label11, SLOT(deleteLater()));
 
 		      QList<QGraphicsItem *> list;
 		      foreach (QGraphicsItem * gItem, graph->childItems())
@@ -2989,12 +2818,7 @@ MainWindow::updateEditTab(int index)
 				      connect(node, SIGNAL(destroyed(QObject*)),
 					      label, SLOT(deleteLater()));
 
-				      node->htmlLabel->editTabLabel = label;
-
-				      QDoubleSpinBox * diamBox
-					  = new QDoubleSpinBox();
-
-				      QDoubleSpinBox * thicknessBox
+				      QDoubleSpinBox * sizeBox
 					  = new QDoubleSpinBox();
 
 				      QPushButton * lineColorButton
@@ -3005,14 +2829,9 @@ MainWindow::updateEditTab(int index)
 				      QSpinBox * fontSizeBox
 					  = new QSpinBox();
 
-				      nodeEdit->installEventFilter(node);
-				      diamBox->installEventFilter(node);
-				      thicknessBox->installEventFilter(node);
-				      fontSizeBox->installEventFilter(node);
-
 				      // All controllers handle deleting of widgets
 				      SizeController * sizeController
-					  = new SizeController(node, diamBox, thicknessBox);
+					  = new SizeController(node, sizeBox);
 				      ColorLineController * colorLineController
 					  = new ColorLineController(node,
 								    lineColorButton);
@@ -3026,12 +2845,11 @@ MainWindow::updateEditTab(int index)
 								    fillColorButton);
 
 				      gridLayout->addWidget(label, i, 1);
-				      gridLayout->addWidget(thicknessBox, i, 2);
-				      gridLayout->addWidget(diamBox, i, 3);
-				      gridLayout->addWidget(nodeEdit,  i, 4);
-				      gridLayout->addWidget(fontSizeBox, i, 5);
-				      gridLayout->addWidget(lineColorButton, i, 6);
-				      gridLayout->addWidget(fillColorButton, i, 7);
+				      gridLayout->addWidget(sizeBox, i, 2);
+				      gridLayout->addWidget(nodeEdit,  i, 3);
+				      gridLayout->addWidget(fontSizeBox, i, 4);
+				      gridLayout->addWidget(lineColorButton, i, 5);
+				      gridLayout->addWidget(fillColorButton, i, 6);
 				      Q_UNUSED(sizeController);
 				      Q_UNUSED(colorLineController);
 				      Q_UNUSED(colorFillController);
@@ -3043,7 +2861,7 @@ MainWindow::updateEditTab(int index)
 				  {
 				      Edge * edge
 					  = qgraphicsitem_cast<Edge*>(gItem);
-				      QLineEdit * edgeEdit = new QLineEdit();
+				      QLineEdit * editEdge = new QLineEdit();
 				      // Q: what were these for??
 				      // editEdge->setText("Edge\n");
 				      // gridLayout->addWidget(editEdge);
@@ -3054,20 +2872,11 @@ MainWindow::updateEditTab(int index)
 				      connect(edge, SIGNAL(destroyed(QObject*)),
 					      label, SLOT(deleteLater()));
 
-				      edge->htmlLabel->editTabLabel = label;
-
-				      QPushButton * button
-					  = new QPushButton();
-
+				      QPushButton * button = new QPushButton();
 				      QDoubleSpinBox * sizeBox
 					  = new QDoubleSpinBox();
-
 				      QSpinBox * fontSizeBox
 					  = new QSpinBox();
-
-				      edgeEdit->installEventFilter(edge);
-				      sizeBox->installEventFilter(edge);
-				      fontSizeBox->installEventFilter(edge);
 
 				      // All controllers handle deleting of widgets
 				      SizeController * sizeController
@@ -3075,16 +2884,16 @@ MainWindow::updateEditTab(int index)
 				      ColorLineController * colorController
 					  = new ColorLineController(edge, button);
 				      LabelController * weightController
-					  = new LabelController(edge, edgeEdit);
+					  = new LabelController(edge, editEdge);
 				      LabelSizeController * weightSizeController
 					  = new LabelSizeController(edge,
 								    fontSizeBox);
 
 				      gridLayout->addWidget(label, i, 1);
 				      gridLayout->addWidget(sizeBox, i, 2);
-				      gridLayout->addWidget(edgeEdit, i, 4);
-				      gridLayout->addWidget(fontSizeBox, i, 5);
-				      gridLayout->addWidget(button, i, 6);
+				      gridLayout->addWidget(editEdge, i, 3);
+				      gridLayout->addWidget(fontSizeBox, i, 4);
+				      gridLayout->addWidget(button, i, 5);
 				      Q_UNUSED(sizeController);
 				      Q_UNUSED(colorController);
 				      Q_UNUSED(weightController);
@@ -3135,8 +2944,247 @@ MainWindow::updateEditTab(int index)
 	  break;
       }
       default:
-        break;
+	break;
     }
+}
+
+
+/*
+ * Name:	addGraphToEditTab()
+ * Purpose:	Should be used to dynamically update the edit tab. The dream.
+ * Arguments:	None.
+ * Output:	None.
+ * Modifies:	The edit tab.
+ * Returns:	None.
+ * Assumptions: ?
+ * Bugs:	?
+ * Notes:	Still need to decrement j when graphs/nodes/edges are deleted.
+ *              ... or do I? Also need to adjust graphs as nodes/edges are added.
+ */
+
+
+void
+MainWindow::addGraphToEditTab(Graph * graph)
+{
+    graphList.append(graph);
+
+    QLabel * label = new QLabel("Graph");
+    gridLayout->addWidget(label, j, 1);
+    j++;
+
+    QLabel * label2 = new QLabel("N Diam");
+    gridLayout->addWidget(label2, j, 2);
+    QLabel * label3 = new QLabel("E width");
+    gridLayout->addWidget(label3, j+1, 2);
+    QLabel * label4 = new QLabel("Label");
+    gridLayout->addWidget(label4, j, 3);
+    QLabel * label5 = new QLabel("Text");
+    gridLayout->addWidget(label5, j, 4);
+    QLabel * label6 = new QLabel("Size");
+    gridLayout->addWidget(label6, j+1, 4);
+    QLabel * label7 = new QLabel("Line");
+    gridLayout->addWidget(label7, j, 5);
+    QLabel * label8 = new QLabel("Color");
+    gridLayout->addWidget(label8, j+1, 5);
+    QLabel * label9 = new QLabel("Fill");
+    gridLayout->addWidget(label9, j, 6);
+    QLabel * label10 = new QLabel("Color");
+    gridLayout->addWidget(label10, j+1, 6);
+    j += 2;
+
+    // Horrible, ugly connects....
+    connect(graph, SIGNAL(destroyed(QObject*)),
+            label, SLOT(deleteLater()));
+    connect(graph, SIGNAL(destroyed(QObject*)),
+            label2, SLOT(deleteLater()));
+    connect(graph, SIGNAL(destroyed(QObject*)),
+            label3, SLOT(deleteLater()));
+    connect(graph, SIGNAL(destroyed(QObject*)),
+            label4, SLOT(deleteLater()));
+    connect(graph, SIGNAL(destroyed(QObject*)),
+            label5, SLOT(deleteLater()));
+    connect(graph, SIGNAL(destroyed(QObject*)),
+            label6, SLOT(deleteLater()));
+    connect(graph, SIGNAL(destroyed(QObject*)),
+            label7, SLOT(deleteLater()));
+    connect(graph, SIGNAL(destroyed(QObject*)),
+            label8, SLOT(deleteLater()));
+    connect(graph, SIGNAL(destroyed(QObject*)),
+            label9, SLOT(deleteLater()));
+    connect(graph, SIGNAL(destroyed(QObject*)),
+            label10, SLOT(deleteLater()));
+
+    QList<QGraphicsItem *> list;
+    foreach (QGraphicsItem * gItem, graph->childItems())
+        list.append(gItem);
+
+    while (!list.isEmpty())
+    {
+        foreach (QGraphicsItem * gItem, list)
+        {
+            if (gItem != nullptr)
+            {
+                if (gItem->type() == Graph::Type)
+                    list.append(gItem->childItems());
+
+		else if (gItem->type() == Node::Type)
+		{
+		    Node * node = qgraphicsitem_cast<Node*>(gItem);
+		    addNodeToEditTab(node);
+		}
+		else if (gItem->type() == Edge::Type)
+		{
+		    Edge * edge
+			= qgraphicsitem_cast<Edge*>(gItem);
+		    addEdgeToEditTab(edge);
+		}
+	    }
+	    list.removeFirst();
+	}
+    }
+}
+
+
+void
+MainWindow::addNodeToEditTab(Node * node)
+{
+    int exists = 0;
+    Graph * nodeParent = qgraphicsitem_cast<Graph*>(node->parentItem());
+    foreach (Graph * graph, graphList)
+    {
+        if (nodeParent == graph)
+            exists = 1;
+    }
+
+    if (exists == 0)
+    {
+        addGraphToEditTab(nodeParent);
+        return;
+    }
+    else
+        ;// i = end index of existing graph on edit tab which should be j?
+
+    QLineEdit * nodeEdit = new QLineEdit();
+    // Q: what was the point of this?
+    // nodeEdit->setText("Node\n");
+    // gridLayout->addWidget(nodeEdit);
+
+    QLabel * label = new QLabel("Node");
+    // When this node is deleted, also
+    // delete its label in the edit tab.
+    connect(node, SIGNAL(destroyed(QObject*)),
+            label, SLOT(deleteLater()));
+    //connect(node, SIGNAL(isSelected()),
+    //        label, SLOT(setBold(bool)));
+
+    QDoubleSpinBox * sizeBox
+        = new QDoubleSpinBox();
+
+    QPushButton * lineColorButton
+        = new QPushButton();
+    QPushButton * fillColorButton
+        = new QPushButton();
+
+    QSpinBox * fontSizeBox
+        = new QSpinBox();
+
+    // All controllers handle deleting of widgets
+    SizeController * sizeController
+        = new SizeController(node, sizeBox);
+    ColorLineController * colorLineController
+        = new ColorLineController(node,
+                                  lineColorButton);
+    LabelController * weightController
+        = new LabelController(node, nodeEdit);
+    LabelSizeController * weightSizeController
+        = new LabelSizeController(node,
+                                  fontSizeBox);
+    ColorFillController * colorFillController
+        = new ColorFillController(node,
+                                  fillColorButton);
+
+    gridLayout->addWidget(label, j, 1);
+    gridLayout->addWidget(sizeBox, j, 2);
+    gridLayout->addWidget(nodeEdit,  j, 3);
+    gridLayout->addWidget(fontSizeBox, j, 4);
+    gridLayout->addWidget(lineColorButton, j, 5);
+    gridLayout->addWidget(fillColorButton, j, 6);
+    Q_UNUSED(sizeController);
+    Q_UNUSED(colorLineController);
+    Q_UNUSED(colorFillController);
+    Q_UNUSED(weightController);
+    Q_UNUSED(weightSizeController);
+    j++;
+}
+
+
+void
+MainWindow::addEdgeToEditTab(Edge * edge)
+{
+    // Check if edge connected two separate graphs
+    if (edge->causedConnect == 1)
+    {   // If so, we need to amalgate the two in the edit tab only...
+        // Perhaps remove headers from first 3 rows of one graph (first 10 indexes)
+        // then move any entries for that graph to be with the other graph
+        Graph * parent1 = nullptr;
+        Graph * parent2 = nullptr;
+
+        foreach (Graph * graph, graphList)
+        {
+            if (graph->parentItem() != nullptr)
+            {
+                if (parent1 == nullptr)
+                    parent1 = graph;
+                else
+                    parent2 = graph;
+            }
+        }
+        // ..............?
+        ; // i = end index of the other graph
+    }
+    else
+        ; // i = end index of edge's root parent graph
+
+    QLineEdit * editEdge = new QLineEdit();
+    // Q: what were these for??
+    // editEdge->setText("Edge\n");
+    // gridLayout->addWidget(editEdge);
+
+    QLabel * label = new QLabel("Edge");
+    // When this edge is deleted, also
+    // delete its label in the edit tab.
+    connect(edge, SIGNAL(destroyed(QObject*)),
+            label, SLOT(deleteLater()));
+    //connect(edge, SIGNAL(isSelected()),
+    //        label, SLOT(setBold(bool)));
+
+    QPushButton * button = new QPushButton();
+    QDoubleSpinBox * sizeBox
+        = new QDoubleSpinBox();
+    QSpinBox * fontSizeBox
+        = new QSpinBox();
+
+    // All controllers handle deleting of widgets
+    SizeController * sizeController
+        = new SizeController(edge, sizeBox);
+    ColorLineController * colorController
+        = new ColorLineController(edge, button);
+    LabelController * weightController
+        = new LabelController(edge, editEdge);
+    LabelSizeController * weightSizeController
+        = new LabelSizeController(edge,
+                                  fontSizeBox);
+
+    gridLayout->addWidget(label, j, 1);
+    gridLayout->addWidget(sizeBox, j, 2);
+    gridLayout->addWidget(editEdge, j, 3);
+    gridLayout->addWidget(fontSizeBox, j, 4);
+    gridLayout->addWidget(button, j, 5);
+    Q_UNUSED(sizeController);
+    Q_UNUSED(colorController);
+    Q_UNUSED(weightController);
+    Q_UNUSED(weightSizeController);
+    j++;
 }
 
 
@@ -3148,14 +3196,14 @@ MainWindow::dumpTikZ()
 
     foreach (QGraphicsItem * item, ui->canvas->scene()->items())
     {
-        if (item->type() == Node::Type)
-        {
-            Node * node = qgraphicsitem_cast<Node *>(item);
-            node->setID(numOfNodes++);
-            nodes.append(node);
-        }
+	if (item->type() == Node::Type)
+	{
+	    Node * node = qgraphicsitem_cast<Node *>(item);
+	    node->setID(numOfNodes++);
+	    nodes.append(node);
+	}
     }
-
+    
     qDeb() << "%%========== TikZ dump of current graph follows: ============";
     QTextStream tty(stdout);
     saveTikZ(tty, nodes);
@@ -3172,14 +3220,14 @@ MainWindow::dumpGraphIc()
 
     foreach (QGraphicsItem * item, ui->canvas->scene()->items())
     {
-        if (item->type() == Node::Type)
-        {
-            Node * node = qgraphicsitem_cast<Node *>(item);
-            node->setID(numOfNodes++);
-            nodes.append(node);
-        }
+	if (item->type() == Node::Type)
+	{
+	    Node * node = qgraphicsitem_cast<Node *>(item);
+	    node->setID(numOfNodes++);
+	    nodes.append(node);
+	}
     }
-
+    
     qDeb() << "%%========= graphIc dump of current graph follows: ===========";
     QTextStream tty(stdout);
     saveGraphIc(tty, nodes, true);
@@ -3217,31 +3265,9 @@ MainWindow::saveSettings()
 
 
 void
-MainWindow::updateDpiAndPreview()
-{
-    QScreen * screen = QGuiApplication::primaryScreen();
-    if (settings.value("useDefaultResolution").toBool() == true)
-    {
-        currentPhysicalDPI = screen->physicalDotsPerInch();
-        currentPhysicalDPI_X = screen->physicalDotsPerInchX();
-        currentPhysicalDPI_Y = screen->physicalDotsPerInchY();
-    }
-    else
-    {
-        currentPhysicalDPI = settings.value("customResolution").toReal();
-        currentPhysicalDPI_X = settings.value("customResolution").toReal();
-        currentPhysicalDPI_Y = settings.value("customResolution").toReal();
-    }
-
-    generate_Graph(nodeDiam_WGT);
-}
-
-
-void
 MainWindow::closeEvent (QCloseEvent *event)
 {
-    if (!ui->canvas->scene()->itemsBoundingRect().isEmpty()
-        && promptSave == true)
+    if (!ui->canvas->scene()->itemsBoundingRect().isEmpty())
     {
         QMessageBox::StandardButton closeBtn
                 = QMessageBox::question(this, "Graphic",
