@@ -1,3 +1,21 @@
+/*
+ * File:    graph.cpp
+ * Author:  Rachel Bood
+ * Date:    2014/11/07 (?)
+ * Version: 1.2
+ *
+ * Purpose:
+ *
+ * Modification history:
+ * July 20, 2020 (IC V1.1)
+ *  (a) Fixed setRotation to properly rotate graph items while taking into
+ *      account their previous rotation value.
+ * August 12, 2020 (IC V1.2)
+ *  (b) Reversed the previous change to setRotation since it was only needed
+ *      when graphs could be children of other graphs which can no longer
+ *      happen.
+ */
+
 #include "graph.h"
 #include "canvasview.h"
 #include "node.h"
@@ -37,6 +55,7 @@ Graph::Graph()
     setFlag(ItemIsFocusable);
     setCacheMode(DeviceCoordinateCache);
     moved = 0;
+    rotation = 0;
     setAcceptHoverEvents(true);
     setZValue(0);
 }
@@ -124,24 +143,68 @@ QRectF Graph::boundingRect() const
  * Notes:       the nodes and edge labels need to be rotated in the opposite direction
  *              otherwise the labels of the edges and nodes won't be easily read
  */
-void Graph::setRotation(qreal aRotation)
+void Graph::setRotation(qreal aRotation, bool keepRotations)
 {
-    for (QGraphicsItem * child: this->childItems())
+    QList<QGraphicsItem *> list;
+    foreach (QGraphicsItem * gItem, this->childItems())
+        list.append(gItem);
+
+    while (!list.isEmpty())
     {
-        if (child != nullptr || child != 0)
+        foreach (QGraphicsItem * child, list)
         {
-            if (child->type() == Node::Type)
+            if (child != nullptr || child != 0)
             {
-                child->setRotation(-aRotation);
-            }
-            else if(child->type() == Edge::Type)
-            {
-                child->setRotation(-aRotation);
+                if (child->type() == Graph::Type)
+                {
+                    list.append(child->childItems());
+                }
+                else if (child->type() == Node::Type)
+                {
+                    Node * node = qgraphicsitem_cast<Node*>(child);
+                    if (keepRotations)
+                        node->setRotation(node->getRotation() + -aRotation);
+                    else
+                        node->setRotation(-aRotation);
+                }
+                else if(child->type() == Edge::Type)
+                {
+                    Edge * edge = qgraphicsitem_cast<Edge*>(child);
+                    if (keepRotations)
+                        edge->setRotation(edge->getRotation() + -aRotation);
+                    else
+                        edge->setRotation(-aRotation);
+                }
+                list.removeOne(child);
             }
         }
     }
+    if (keepRotations)
+        rotation = getRotation() + aRotation;
+    else
+        rotation = aRotation;
     QGraphicsItem::setRotation(aRotation);
 }
+
+
+/*
+ * Name:	getRotation()
+ * Purpose:	??
+ * Arguments:
+ * Output:
+ * Modifies:
+ * Returns:
+ * Assumptions:
+ * Bugs:
+ * Notes:
+ */
+
+qreal
+Graph::getRotation()
+{
+    return rotation;
+}
+
 
 /*
  * Name:        getRootParent()
@@ -156,8 +219,8 @@ void Graph::setRotation(qreal aRotation)
  */
 QGraphicsItem *Graph::getRootParent()
 {
-    QGraphicsItem * parent = this->parentItem();
-    while (parent != nullptr || parent != 0)
+    QGraphicsItem * parent = this;
+    while (parent->parentItem() != nullptr || parent->parentItem() != 0)
         parent = parent->parentItem();
     return parent;
 }

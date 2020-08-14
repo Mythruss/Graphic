@@ -2,7 +2,7 @@
  * File:	mainwindow.h
  * Author:	Rachel Bood
  * Date:	January 25, 2015.
- * Version:	1.13
+ * Version:	1.14
  *
  * Purpose:	Define the MainWindow class.
  *
@@ -43,6 +43,14 @@
  * June 19, 2020 (IC V1.13)
  *  (a) Added multiple slots for updating edit tab when graphs/nodes/edges are
  *      created.
+ * July 31, 2020 (IC V1.14)
+ *  (a) Added somethingChanged() slot and bool promptSave that detects if any
+ *      change has been made on the canvas since the last save and thus a new
+ *      save prompt is needed on exit.
+ * August 5, 2020 (IC V1.15)
+ *  (a) Added updateDpiAndPreview slot and settingsDialog variable to be used
+ *      in conjunction with the new settingsDialog window which allows the user
+ *      to use a custom DPI value instead of the system default.
  */
 
 
@@ -57,6 +65,8 @@
 
 #include "defuns.h"
 #include "graph.h"
+#include "settingsdialog.h"
+#include "ui_settingsdialog.h"
 
 namespace Ui
 {
@@ -113,9 +123,8 @@ class MainWindow : public QMainWindow
     void updateEditTab(int index);
     void updateEditTab();
 
-    void addGraphToEditTab(Graph * graph);
-    void addNodeToEditTab(Node * node);
-    void addEdgeToEditTab(Edge * edge);
+    void somethingChanged();
+    void updateDpiAndPreview();
 
 private:
     void loadSettings();
@@ -127,6 +136,8 @@ private:
     QGridLayout * gridLayout;
     QScrollArea * scroll;
     QList<Graph *> graphList;
+    bool promptSave = false;
+    SettingsDialog * settingsDialog;
 };
 
 #endif // MAINWINDOW_H

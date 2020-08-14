@@ -2,7 +2,7 @@
  * File:	defuns.h
  * Author:	Jim Diamond
  * Date:	2019-12-10
- * Version:	1.3
+ * Version:	1.6
  *
  * Purpose:	Hold definitions that are needed by multiple classes
  *		and yet don't seem to meaningfully fit anywhere else.
@@ -21,12 +21,24 @@
  *  (a) Added numLabelStart_WGT
  * June 9, 2020 (IC V1.2)
  *  (a) Moved BUTTON_STYLE here so it is not repeated across 3 files.
- * June 3, 2020 (IC V1.3)
+ * July 3, 2020 (IC V1.3)
  *  (a) Added nodeThickness_WGT
+ * August 5, 2020 (IC V1.4)
+ *  (a) Renamed nodeSize_WGT to nodeDiam_WGT and edgeSize_WGT to
+ *      edgeThickness_WGT for clarity.
+ * August 6, 2020 (IC V1.5)
+ *  (a) Moved QSettings variable here so that it may be used globally
+ *      across the program. It is currently defined at the beginning of
+ *      mainwindow.cpp.
+ * August 12, 2020 (IC V1.6)
+ *  (a) Moved the physicalDPI variables here so they may also be used
+ *      globally. They are also defined at the beginning of mainwindow.cpp.
  */
 
 #ifndef DEFUNS_H
 #define DEFUNS_H
+
+#include <QSettings>
 
 // Use qDeb() and qDebu() for debugging, and then the statements can
 // be turned on and off with a re-compile but no source-code editing.
@@ -44,9 +56,12 @@ static const bool debug = false;
 #define BUTTON_STYLE "border-style: outset; border-width: 2px; " \
 	     "border-radius: 5px; border-color: beige; padding: 3px;"
 
-enum widget_ID {NO_WGT, ALL_WGT, nodeSize_WGT, nodeLabel1_WGT, nodeLabel2_WGT,
+extern QSettings settings;
+extern qreal currentPhysicalDPI, currentPhysicalDPI_X, currentPhysicalDPI_Y;
+
+enum widget_ID {NO_WGT, ALL_WGT, nodeDiam_WGT, nodeLabel1_WGT, nodeLabel2_WGT,
 		nodeLabelSize_WGT, numLabelCheckBox_WGT, nodeFillColour_WGT,
-		nodeOutlineColour_WGT, edgeSize_WGT, edgeLabel_WGT,
+		nodeOutlineColour_WGT, edgeThickness_WGT, edgeLabel_WGT,
 		edgeLabelSize_WGT, edgeLineColour_WGT, graphRotation_WGT,
 		completeCheckBox_WGT, graphHeight_WGT, graphWidth_WGT,
 		numOfNodes1_WGT, numOfNodes2_WGT, graphTypeComboBox_WGT,

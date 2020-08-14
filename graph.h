@@ -49,7 +49,8 @@ public:
     Nodes nodes;
 
     QRectF boundingRect() const;
-    void setRotation(qreal aRotation);
+    void setRotation(qreal aRotation, bool keepRotations);
+    qreal getRotation();
     QGraphicsItem * getRootParent();
 
 protected:
@@ -60,6 +61,7 @@ protected:
 
 private:
      int moved;		// 1 means the graph was dropped onto the canvas.
+     qreal rotation;
 };
 
 #endif // GRAPH_H

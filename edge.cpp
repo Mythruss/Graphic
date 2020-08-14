@@ -2,7 +2,7 @@
  * File:    edge.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.9
+ * Version: 1.11
  *
  * Purpose: creates an edge for the users graph
  *
@@ -59,6 +59,13 @@
  * June 18, 2020 (IC V1.9)
  *  (a) Added setEdgeLabel() and appropriate connect in the contructor to
  *      update label when changes are made on the canvas in edit mode.
+ * July 9, 2020 (IC V1.10)
+ *  (a) Corrected the painter to reposition the label whenever an edge moves.
+ * July 29, 2020 (IC V1.11)
+ *  (a) Added penStyle variable to change the edge's pen style, like what is
+ *      done in node.cpp.
+ *  (b) Added eventFilter() to receive edit tab events so we can identify
+ *      the edge being edited/looked at.
  */
 
 #include "edge.h"
@@ -81,7 +88,6 @@ static const double offset = 5;		// TO DO: what is this?
 
 
 
-
 /*
  * Name:        Edge
  * Purpose:     Constructor for Edge class
@@ -99,13 +105,14 @@ Edge::Edge(Node * sourceNode, Node * destNode)
     qDeb() << "Edge:Edge constructor called";
 
     setFlag(ItemIsSelectable);
-    setFlag(ItemIsFocusable); // Why is this here?
+    setFlag(ItemIsFocusable);
     setFlag(ItemSendsGeometryChanges);
     source = sourceNode;
     setZValue(0);
     dest = destNode;
     source->addEdge(this);
     dest->addEdge(this);
+    penStyle = 0;	// What type of pen style to use when drawing outline.
     penSize = 1;
     rotation = 0;
     label = "";
@@ -114,11 +121,7 @@ Edge::Edge(Node * sourceNode, Node * destNode)
     sourceRadius = destNode->getDiameter() / 2.;
     setHandlesChildEvents(true);
     htmlLabel = new HTML_Label(this);
-    htmlLabel->setPos((edgeLine.p2().rx() + edgeLine.p1().rx()) / 2.
-		      - htmlLabel->boundingRect().width() / 2.,
-		      (edgeLine.p2().ry() + edgeLine.p1().ry()) / 2.
-		      - htmlLabel->boundingRect().height() / 2.);
-    adjust();
+    checked = 0;
 
     connect(htmlLabel->document(), SIGNAL(contentsChanged()),
             this, SLOT(setEdgeLabel()));
@@ -206,8 +209,8 @@ Edge::editLabel(bool edit)
 QGraphicsItem *
 Edge::getRootParent()
 {
-    QGraphicsItem * parent = this->parentItem();
-    while (parent != nullptr)
+    QGraphicsItem * parent = this;
+    while (parent->parentItem() != nullptr || parent->parentItem() != 0)
         parent = parent->parentItem();
     return parent;
 }
@@ -281,7 +284,7 @@ Edge::setLabel(QString aLabel)
  * Modifies:    The edge's label.
  * Returns:     Nothing.
  * Assumptions: None.
- * Bugs:        Sets the line edit text to u1 instead of u_{1} for subscripts.
+ * Bugs:        Sets the lineEdit text to u1 instead of u_{1} for subscripts.
  * Notes:       Not sure if anything should be done to htmlLabel.
  *              Edge.cpp and Node.cpp are very inconsistent in how they handle
  *              labels.
@@ -789,7 +792,12 @@ Edge::paint(QPainter * painter, const QStyleOptionGraphicsItem * option,
     pen.setWidthF(penSize);
     pen.setCapStyle(Qt::RoundCap);
     pen.setJoinStyle(Qt::RoundJoin);
-    pen.setStyle(Qt::SolidLine);
+
+    if (penStyle == 1)
+        pen.setStyle(Qt::DashLine);
+    else
+        pen.setStyle(Qt::SolidLine);
+
     painter->setPen(pen);
     painter->drawLine(line);
     edgeLine = line;
@@ -798,13 +806,40 @@ Edge::paint(QPainter * painter, const QStyleOptionGraphicsItem * option,
     if (debug)
         painter->drawPolygon(selectionPolygon);
 
-    if (label.length() > 0)
+    htmlLabel->setPos((line.p2().rx() + line.p1().rx()) / 2.
+                      - htmlLabel->boundingRect().width() / 2.,
+                      (line.p2().ry() + line.p1().ry()) / 2.
+                      - htmlLabel->boundingRect().height() / 2.);
+}
+
+
+
+/*
+ * Name:        eventFilter()
+ * Purpose:     Intercepts events related to edit tab widgets so
+ *              we can identify the edge being edited.
+ * Arguments:
+ * Output:
+ * Modifies:
+ * Returns:
+ * Assumptions:
+ * Bugs:
+ * Notes:       Try using QEvent::HoverEnter and QEvent::HoverLeave
+ */
+
+bool
+Edge::eventFilter(QObject *obj, QEvent *event)
+{
+    if (event->type() == QEvent::FocusIn)
     {
-	htmlLabel->setPos((line.p2().rx() + line.p1().rx()) / 2.
-			  - htmlLabel->boundingRect().width() / 2.,
-			  (line.p2().ry() + line.p1().ry()) / 2.
-			  - htmlLabel->boundingRect().height() / 2.);
+        penStyle = 1;
     }
+    else if (event->type() == QEvent::FocusOut)
+    {
+        penStyle = 0;
+    }
+    update();
+    return QObject::eventFilter(obj, event);
 }
 
 

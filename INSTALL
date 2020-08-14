@@ -49,19 +49,41 @@ To compile (and optionally install) Graphic on MacOS:
 To compile (and optionally install) Graphic on Windows 10:
 -----------------------------------------------------
 0. Copy down the source files found here.
+1. Install Qt5
+   -> you must install the Qt development tools, not just the run-time support.
+2. Install Visual Studio for access to MSVC and nmake.
+3. From the developer command prompt for MSVC, Run
+      qmake
+4. Assuming that is all good, run
+      nmake
+   For qmake or nmake to work, you will likely need to add to your PATH
+   variable both the build location and the Qt bin folder for your environment
+   found in this directory path
+      Qt/version/enviroment/bin/
+5. The executable is the program "Graphic" in the build directory.
+   You can "install" it by copying it to the directory of your choice.
+   
+
+
+If the above instructions for your machine did not work or if none apply, the
+following agnostic instructions should work.
+
+To compile (and optionally install) Graphic through QT Creator:
+-----------------------------------------------------
+0. Copy down the source files found here.
 1. Download the Qt installer from https://www.qt.io/offline-installers
    -> you must install the Qt development tools, not just the run-time support.
-   -> If you don't intend on building with MSVC as your environment/compiler,
-   select a version of MinGW to install when prompted by the Qt installer.
 2. Open graphic.pro in Qt Creator, select your environment when prompted,
    press configure project, and then run Build.
 3. The executable is the program "Graphic" in the folder called
-      "build-Graphic-Desktop_Qt_5_14_2_*"
-   where * stands for the environment you chose. Move Graphic.exe from this
-   folder to the bin of the environment you chose in this directory path
-      Qt/5_14_2/*/bin/
-   where * stands for the environment you chose.
-4. Optionally, create a shortcut to copy to the directory of your choice.
+      "build-Graphic-Desktop_Qt"
+4. Depending on your machine, you may need to either move Graphic.exe from
+   this folder to the bin of the environment you chose in this directory path
+      Qt/version/environment/bin/
+   or add that bin folder and the build folder to your PATH variable.
+5. Optionally, create a shortcut to copy to the directory of your choice.
+
+
 
 
 

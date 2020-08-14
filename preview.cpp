@@ -2,7 +2,7 @@
  * File:    preview.cpp
  * Author:  Rachel Bood 100088769
  * Date:    2014/11/07
- * Version: 1.9
+ * Version: 1.12
  *
  * Purpose: Initializes a QGraphicsView that is used to house the QGraphicsScene
  *
@@ -58,6 +58,17 @@
  * July 3, 2020 (IC V1.9)
  *  (a) Added nodeThickness param to Style_Graph() to allow adjusting
  *      thickness of nodes.
+ *  (b) Fixed keyPressEvent to require Ctrl+ and Ctrl- to zoom out/in instead
+ *      of just + and - keys.
+ * July 7, 2020 (IC V1.10)
+ *  (a) Updated scaleView to accomodate for the new visible zoomDisplay on the
+ *      preview pane ui.
+ * August 11, 2020 (IC V1.11)
+ *  (a) Added wheelEvent to allow for zooming using the mouse wheel.
+ * August 12, 2020 (IC V1.12)
+ *  (a) Updated Style_Graph() to use global physicalDPI values for xDPI and
+ *      yDPI.
+ *  (b) Created macros to be used for zoom level min and max for clarity.
  */
 
 #include "basicgraphs.h"
@@ -83,7 +94,13 @@
 
 // This is the factor by which the preview pane is zoomed for each
 // zoom in or zoom out operation.
-#define SCALE_FACTOR    1.2
+#define SCALE_FACTOR    1.1
+static qreal zoomValue = 100;
+static QString zoomDisplayText = "Zoom: " + QString::number(zoomValue) + "%";
+
+// Empirically chosen values, modify as you see fit:
+#define MIN_ZOOM_LEVEL  0.07
+#define MAX_ZOOM_LEVEL  10.0
 
 
 /*
@@ -133,24 +150,54 @@ PreView::keyPressEvent(QKeyEvent * event)
 {
     qDeb() << "PV:keyPressEvent(" << event->key() << ") called.";
 
-    switch (event->key())
+    if (event->modifiers().testFlag(Qt::ControlModifier))
     {
-      case Qt::Key_Plus:
-      case Qt::Key_Equal:
-        zoomIn();
-        break;
-      case Qt::Key_Minus:
-        zoomOut();
-        break;
-      case Qt::Key_Delete:
-	// TODO: why is this here??
-        break;
-      default:
-        QGraphicsView::keyPressEvent(event);
+        switch (event->key())
+        {
+          case Qt::Key_Equal:
+            zoomIn();
+            break;
+          case Qt::Key_Minus:
+            zoomOut();
+            break;
+          default:
+            QGraphicsView::keyPressEvent(event);
+	}
     }
+    else
+        QGraphicsView::keyPressEvent(event);
 }
 
 
+/*
+ * Name:        wheelEvent
+ * Purpose:     Perform the appropriate action for wheel scroll.
+ * Arguments:   QWheelEvent
+ * Output:      Nothing.
+ * Modifies:    The scale of the preview window for the zoom operations.
+ * Returns:     Nothing.
+ * Assumptions: ?
+ * Bugs:        ?
+ * Notes:       Unhandled key events are passed on to QGraphics View
+ */
+
+void
+PreView::wheelEvent(QWheelEvent *event)
+{
+    qDeb() << "PV:wheelEvent(" << event->angleDelta() << ") called.";
+
+    if (event->modifiers().testFlag(Qt::ControlModifier))
+    {
+        if (event->angleDelta().y() > 0)
+            zoomIn();
+        else if (event->angleDelta().y() < 0)
+            zoomOut();
+        else
+            QGraphicsView::wheelEvent(event);
+    }
+    else
+        QGraphicsView::wheelEvent(event);
+}
 
 /*
  * Name:        scaleView()
@@ -171,9 +218,21 @@ PreView::scaleView(qreal scaleFactor)
 
     qreal factor = transform().scale(scaleFactor, scaleFactor)
                 .mapRect(QRectF(0, 0, 1, 1)).width();
-    if (factor < 0.07 || factor > 100)
+    if (factor < MIN_ZOOM_LEVEL || factor > MAX_ZOOM_LEVEL)
         return;
     scale(scaleFactor, scaleFactor);
+
+    // Determine how displayed zoom value needs to update
+    qreal afterFactor = transform().scale(scaleFactor, scaleFactor)
+            .mapRect(QRectF(0, 0, 1, 1)).width();
+    if (afterFactor > factor)
+        zoomValue = zoomValue*SCALE_FACTOR;
+    else
+        zoomValue = zoomValue/SCALE_FACTOR;
+
+    // Update and show the current zoom
+    zoomDisplayText = "Zoom: " + QString::number(zoomValue, 'f', 0) + "%";
+    emit zoomChanged(zoomDisplayText);
 }
 
 
@@ -430,10 +489,6 @@ PreView::Style_Graph(Graph * graph,		    int graphType,
 
     int i = numStart, j = numStart;
 
-    QScreen * screen = QGuiApplication::primaryScreen();
-    qreal xDPI = screen->physicalDotsPerInchX();
-    qreal yDPI = screen->physicalDotsPerInchY();
-
     // The w & h args are *total* w & h for the graph, but we need to
     // locate the center of the nodes.  So first calculate the
     // nodecenter-to-nodecenter dimensions, then calculate the scale
@@ -442,11 +497,11 @@ PreView::Style_Graph(Graph * graph,		    int graphType,
     qreal centerWidth = totalWidth - nodeDiameter;
     if (centerWidth < 0.1)
 	centerWidth = 0.1;
-    qreal widthScaleFactor = centerWidth * xDPI;
+    qreal widthScaleFactor = centerWidth * currentPhysicalDPI_X;
     qreal centerHeight = totalHeight - nodeDiameter;
     if (centerHeight < 0.1)
 	centerHeight = 0.1;
-    qreal heightScaleFactor = centerHeight * yDPI;
+    qreal heightScaleFactor = centerHeight * currentPhysicalDPI_Y;
 
     qDeb() << "    Desired total width: " << totalWidth
 	   << "; desired center width " << centerWidth
@@ -461,8 +516,11 @@ PreView::Style_Graph(Graph * graph,		    int graphType,
         {
 	    Node * node = qgraphicsitem_cast<Node *>(item);
 	    node->setParentItem(nullptr);	    // ?? Eh?
+
+	    node->physicalDotsPerInchX = currentPhysicalDPI_X;
+
 	    GUARD(nodeThickness_WGT) node->setPenWidth(nodeThickness);
-	    GUARD(nodeSize_WGT) node->setDiameter(nodeDiameter);
+	    GUARD(nodeDiam_WGT) node->setDiameter(nodeDiameter);
 	    GUARD(nodeFillColour_WGT) node->setFillColour(nodeFillColor);
 	    GUARD(nodeOutlineColour_WGT) node->setLineColour(nodeOutlineColor);
 	    GUARD(nodeLabelSize_WGT) node->setNodeLabelSize(nodeLabelSize);
@@ -506,7 +564,7 @@ PreView::Style_Graph(Graph * graph,		    int graphType,
         {
 	    Edge * edge = qgraphicsitem_cast<Edge *>(item);
 	    edge->setParentItem(nullptr);	// ?? Eh?
-	    GUARD(edgeSize_WGT) edge->setPenWidth(edgeSize);
+	    GUARD(edgeThickness_WGT) edge->setPenWidth(edgeSize);
 	    GUARD(edgeLineColour_WGT) edge->setColour(edgeLineColor);
 	    GUARD(edgeLabelSize_WGT)
 		edge->setLabelSize((edgeLabelSize > 0) ? edgeLabelSize : 1);
@@ -517,10 +575,10 @@ PreView::Style_Graph(Graph * graph,		    int graphType,
 		else
 		    edge->setLabel("");	// Clear any old label
 	    }
-	    GUARD(nodeSize_WGT) edge->setDestRadius(nodeDiameter / 2.);
+	    GUARD(nodeDiam_WGT) edge->setDestRadius(nodeDiameter / 2.);
 	    // Q: why did RB do this?  It gives a bizarre value.
 	    // edge->setSourceRadius(edge->sourceNode()->getDiameter() / 2.);
-	    GUARD(nodeSize_WGT) edge->setSourceRadius(nodeDiameter / 2.);
+	    GUARD(nodeDiam_WGT) edge->setSourceRadius(nodeDiameter / 2.);
 	    edge->setParentItem(graph);
         }
     }
@@ -529,5 +587,5 @@ PreView::Style_Graph(Graph * graph,		    int graphType,
     graph->setPos(mapToScene(viewport()->rect().center()));
     qDeb() << "   graph NOW located at " << graph->x() << ", "
 	   << graph->y(); 
-    graph->setRotation(-1 * rotation);
+    graph->setRotation(-1 * rotation, false);
 }

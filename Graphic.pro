@@ -29,6 +29,7 @@ SOURCES += \
     mainwindow.cpp \
     node.cpp \
     preview.cpp \
+    settingsdialog.cpp \
     sizecontroller.cpp
 
 HEADERS += \
@@ -48,10 +49,12 @@ HEADERS += \
     mainwindow.h \
     node.h \
     preview.h \
+    settingsdialog.h \
     sizecontroller.h
 
 
-FORMS += mainwindow.ui
+FORMS += mainwindow.ui \
+    settingsdialog.ui
 
 CONFIG += c++11 \
     thread

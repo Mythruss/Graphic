@@ -2,7 +2,7 @@
  * File:    node.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.8
+ * Version: 1.9
  *
  * Purpose: Declare the node class.
  * 
@@ -35,6 +35,9 @@
  * July 3, 2020 (IC V1.8)
  *  (a) Added setter and getter for node pen width to allow user to change
  *      thickness of a node.
+ * July 29, 2020 (IC V1.9)
+ *  (a) Added eventFilter() to receive edit tab events so we can identify
+ *      the node being edited/looked at.
  */
 
 
@@ -107,6 +110,8 @@ class Node : public QGraphicsObject
     // ~Node();
 
     HTML_Label * htmlLabel;
+    int checked;
+    qreal physicalDotsPerInchX; // should be private with getter/setter
 
   public slots:
     void setNodeLabel();
@@ -117,6 +122,7 @@ class Node : public QGraphicsObject
     void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
     void paint(QPainter * painter, const QStyleOptionGraphicsItem * option,
 	       QWidget * widget);
+    bool eventFilter(QObject *obj, QEvent *event);
 
   signals:
     //void nodeDeleted(); // Should be removed? Never used.
@@ -130,7 +136,6 @@ class Node : public QGraphicsObject
     int		penStyle;
     qreal	penSize;
     bool	select;
-    qreal	physicalDotsPerInchX;
     void	labelToHtml();
     qreal	previewX;
     qreal	previewY;

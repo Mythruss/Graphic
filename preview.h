@@ -2,7 +2,7 @@
  * File:    preview.h
  * Author:  Rachel Bood 100088769
  * Date:    2014/11/07 (?)
- * Version: 1.4
+ * Version: 1.6
  *
  * Purpose: define the fields of the preview class.
  *
@@ -27,6 +27,10 @@
  * July 3, 2020 (IC V1.4)
  *  (a) Added nodeThickness param to Style_Graph() to allow adjusting
  *      thickness of nodes.
+ * July 7, 2020 (IC V1.5)
+ *  (a) Added zoomChanged signal to tell the mainwindow to update zoomDisplay.
+ * August 11, 2020 (IC V1.6)
+ *  (a) Added wheelEvent to allow for zooming using the mouse wheel.
  */
 
 #ifndef PREVIEW_H
@@ -62,10 +66,14 @@ class PreView: public QGraphicsView
 		       qreal rotation,		    qreal numStart,
 		       qreal nodeThickness);
 
+  signals:
+      void zoomChanged(QString zoomText);
+
   protected:
     virtual void keyPressEvent(QKeyEvent * event);
     virtual void scaleView(qreal scaleFactor);
     virtual void mousePressEvent(QMouseEvent * event);
+    virtual void wheelEvent(QWheelEvent *event);
 
   private:
     QGraphicsScene * PV_Scene;
