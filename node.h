@@ -84,7 +84,6 @@ class Node : public QGraphicsObject
     int getID();
 
     void setNodeLabel(int number);
-    void setNodeLabel(QString aLabel);
     void setNodeLabel(QString aLabel, int number);
     void setNodeLabel(QString aLabel, QString subscript);
     void setNodeLabelSize(qreal labelSize);
@@ -114,7 +113,7 @@ class Node : public QGraphicsObject
     qreal physicalDotsPerInchX; // should be private with getter/setter
 
   public slots:
-    void setNodeLabel();
+    void setNodeLabel(QString aLabel);
 
   protected:
     QVariant itemChange(GraphicsItemChange change, const QVariant &value);

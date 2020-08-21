@@ -1,5 +1,5 @@
 /*
- * File:    settingsdialog.h
+ * File:    settingsdialog.cpp
  * Author:  Ian Cathcart
  * Date:    2020/08/05
  * Version: 1.2
@@ -50,7 +50,7 @@ SettingsDialog::~SettingsDialog()
 
 void
 SettingsDialog::loadSettings()
-{   
+{
     // Always set this label to defaultResolution
     ui->defaultLabel->setText(settings.value("defaultResolution").toString()
                               + " pixels/inch");

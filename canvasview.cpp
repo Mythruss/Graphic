@@ -2,7 +2,7 @@
  * File:    canvasview.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.21
+ * Version: 1.22
  *
  * Purpose: Initializes a QGraphicsView that is used to house the
  *	    QGraphicsScene.
@@ -73,6 +73,8 @@
  *  (a) Added scaleView, wheelEvent, zoomIn, and zoomOut as well as updated
  *      keyPressEvent to allow for zooming on the canvas, similar to the zoom
  *      from preview.cpp, using either a key press or mouse wheel scroll.
+ * August 12 (IC V1.22)
+ *  (a) Created macros to be used for zoom level min and max for clarity.
  */
 
 #include "canvasview.h"
@@ -153,10 +155,12 @@ CanvasView::setUpNodeParams(qreal nodeDiameter, bool numberedLabels,
 			    qreal nodeThickness)
 {
     qDeb() << "CV::setUpNodeParams(): nodeDiameter = " << nodeDiameter;
+    qDeb() << "CV::setUpNodeParams(): nodeLabelsNumbered = " << numberedLabels;
     qDeb() << "CV::setUpNodeParams(): nodeLabel = /" << label << "/";
     qDeb() << "CV::setUpNodeParams(): nodeLabelSize = " << nodeLabelSize;
     qDeb() << "CV::setUpNodeParams(): nodeOutLineColour = " << nodeOutLineColour;
     qDeb() << "CV::setUpNodeParams(): nodeFillColour = " << nodeFillColour;
+    qDeb() << "CV::setUpNodeParams(): nodeThickness = " << nodeThickness;
 
     nodeParams->diameter = nodeDiameter;
     nodeParams->isNumbered = numberedLabels;
@@ -608,9 +612,9 @@ CanvasView::createEdge(Node * source, Node * destination)
     Edge * edge = new Edge(source, destination);
     edge->setPenWidth(edgeParams->size);
     edge->setColour(edgeParams->color);
-    edge->setLabelSize((edgeParams->LabelSize > 0)
+    edge->setEdgeLabelSize((edgeParams->LabelSize > 0)
 			     ? edgeParams->LabelSize : 1);
-    edge->setLabel(edgeParams->label);
+    edge->setEdgeLabel(edgeParams->label);
     edge->setDestRadius(node2->getDiameter() / 2.);
     edge->setSourceRadius(node1->getDiameter() / 2.);
     return edge;
@@ -635,17 +639,20 @@ CanvasView::createEdge(Node * source, Node * destination)
 
 void
 CanvasView::setUpEdgeParams(qreal edgeSize, QString edgeLabel,
-			    qreal edgeLabelSize, QColor edgeLineColour)
+			    qreal edgeLabelSize, QColor edgeLineColour,
+			    bool numberedLabels)
 {
     qDeb() << "CV::setUpEdgeParams(): edgeSize = " << edgeSize;
     qDeb() << "CV::setUpEdgeParams(): edgeLabel = /" << edgeLabel << "/";
     qDeb() << "CV::setUpEdgeParams(): edgeLabelSize = " << edgeLabelSize;
     qDeb() << "CV::setUpEdgeParams(): edgeLineColour = " << edgeLineColour;
+    qDeb() << "CV::setUpEdgeParams(): edgeLabelsNumbered = " << numberedLabels;
 
     edgeParams->size = edgeSize;
     edgeParams->label = edgeLabel;
     edgeParams->LabelSize = edgeLabelSize;
     edgeParams->color = edgeLineColour;
+    edgeParams->isNumbered = numberedLabels;
 }
 
 

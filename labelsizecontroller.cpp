@@ -131,5 +131,5 @@ void
 LabelSizeController::setEdgeLabelSize(int ptSize)
 {
     if (edge != nullptr)
-        edge->setLabelSize(ptSize);
+        edge->setEdgeLabelSize(ptSize);
 }

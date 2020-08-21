@@ -2,7 +2,7 @@
  * File:    canvasscene.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.16
+ * Version: 1.18
  *
  * Purpose: Initializes a QGraphicsScene to implement a drag and drop feature.
  *          still very much a WIP
@@ -68,7 +68,20 @@
  *      new save prompt is necessary.
  * August 12, 2020 (IC V1.16)
  *  (a) Fully removed graph recursion from keyReleaseEvent. Graphs should no
- *      longer find themselves children of other graphs.
+ *      longer find themselves children of other graphs. Because of this, nodes
+ *      and edges need to always have their rotation reset to 0 whenever they
+ *      are transferred to a new parent graph. HOWEVER, the ORIGINAL rotation
+ *      of root2 is lost when the children are given to the new root so it will
+ *      appear out of place...
+ * August 19, 2020 (IC V1.17)
+ *  (a) Changed the way drag mode works slightly. The drag will prioritize
+ *      moving graphs that had items at the point of click before defaulting to
+ *      moving the first graph bounding box found.
+ * August 20, 2020 (IC V1.18)
+ *  (a) Fixed the rotation issue, although the change was made in graph.cpp.
+ *      The rotation of root2 needs to take into account any previous rotation.
+ *  (b) Added code to the keyReleaseEvent that checks if both sets of nodes
+ *      in a 4-node join were connected by an edge and thus to remove one.
  */
 
 #include "canvasscene.h"
@@ -175,6 +188,7 @@ CanvasScene::mousePressEvent(QGraphicsSceneMouseEvent * event)
 {
     qDeb() << "CS::mousePressEvent(" << event->screenPos() << ")";
 
+    bool itemFound = false;
     bool nodeFound = false;
     bool labelFound = false;
     bool something_changed = false;
@@ -384,6 +398,9 @@ CanvasScene::mousePressEvent(QGraphicsSceneMouseEvent * event)
 		    }
 		}
 	    }
+	    if (!labelFound)
+		clearFocus();
+
 	    // Crash ensues if this is left uncommented, not sure why.
 	    /*if (mDragged != nullptr)
 		if (mDragged->type() == Node::Type)
@@ -392,12 +409,14 @@ CanvasScene::mousePressEvent(QGraphicsSceneMouseEvent * event)
 
 	  case CanvasView::drag:
 	    foreach (QGraphicsItem * item, itemList)
-	    {
+	    { // First we search for any node/edge/label at point of click
 		if (item != nullptr || item != 0)
+		{
 		    if (item->type() == Node::Type
 			|| item->type() == Edge::Type
 			|| item->type() == HTML_Label::Type)
 		    {
+			itemFound = true;
 			mDragged = item;
 			while (mDragged->parentItem() != nullptr)
 			    mDragged = mDragged->parentItem();
@@ -407,7 +426,28 @@ CanvasScene::mousePressEvent(QGraphicsSceneMouseEvent * event)
 			QGraphicsScene::mousePressEvent(event);
 			break;
 		    }
+		}
 	    }
+	    if (!itemFound)
+	    { // If no graph item was clicked, then find first graph in list
+		foreach (QGraphicsItem * item, itemList)
+		{
+		    if (item != nullptr || item != 0)
+		    {
+			if (item->type() == Graph::Type)
+			{
+			    mDragged = item;
+			    while (mDragged->parentItem() != nullptr)
+				mDragged = mDragged->parentItem();
+
+			    mDragOffset = event->scenePos() - mDragged->pos();
+
+                            QGraphicsScene::mousePressEvent(event);
+                            break;
+                        }
+                    }
+                }
+            }
 	    break;
 
 	  default:
@@ -558,12 +598,15 @@ CanvasScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event)
  *		re-number all the nodes.  But if n2 is in a graph item
  *		which itself contains graphs (e.g., it was formed by
  *		joining two other graphs), the code does not
- *		recursively delve into the second graph.
+ *		recursively delve into the second graph. FIXED
  *		(2) Joining a graph to a graph which is a result of a
  *		previous join does not do the right thing.  Various
- *		difficult to describe things happen.
+ *		difficult to describe things happen. FIXED
  *		(3) If somehow connectedNode<x> doesn't have a parentItem,
  *		root<n> will be nullptr and eventually dereferenced.
+ *              (4) Joining 4 nodes together causes improper rotations
+ *              after the two graphs have been assigned to the same parent.
+ *
  * Notes:	
  */
 
@@ -635,7 +678,7 @@ CanvasScene::keyReleaseEvent(QKeyEvent * event)
 		    while (root2->parentItem() != nullptr)
 			root2 = qgraphicsitem_cast<Graph*>(
 			    root2->parentItem());
-		    root2->setRotation(qRadiansToDegrees(-angle));
+		    root2->setRotation(qRadiansToDegrees(-angle), true);
 		}
 
 		if (connectNode1a->parentItem() != nullptr)
@@ -673,6 +716,30 @@ CanvasScene::keyReleaseEvent(QKeyEvent * event)
 		    else
 			edge->setDestNode(connectNode1b);
 		    connectNode1b->addEdge(edge);
+		}
+
+		// Now we need to check if node1a and node1b have two edges
+		// connecting them and delete one.
+		Edge * existingEdge = nullptr;
+		foreach (Edge * edge, connectNode1a->edges())
+		{
+		    if (edge->sourceNode() == connectNode1b ||
+			edge->destNode() == connectNode1b)
+		    {
+			if (existingEdge == nullptr)
+			    existingEdge = edge;
+			else
+			{
+			    connectNode1a->removeEdge(edge);
+			    connectNode1b->removeEdge(edge);
+			    connectNode2a->removeEdge(edge);
+			    connectNode2b->removeEdge(edge);
+			    removeItem(edge);
+			    delete(edge);
+			    edge = nullptr;
+			    break;
+			}
+		    }
 		}
 
 		// See comments above about the buggyness of this code.
@@ -741,13 +808,13 @@ CanvasScene::keyReleaseEvent(QKeyEvent * event)
 		delete connectNode2b;
 
                 // Dispose of old roots
-                removeItem(root1);
-                delete root1;
-                root1 = nullptr;
+		removeItem(root1);
+		delete root1;
+		root1 = nullptr;
 
-                removeItem(root2);
-                delete root2;
-                root2 = nullptr;
+		removeItem(root2);
+		delete root2;
+		root2 = nullptr;
 
 		connectNode1a->chosen(0);
 		connectNode1b->chosen(0);

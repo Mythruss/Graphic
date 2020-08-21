@@ -809,29 +809,7 @@
                   </property>
                  </widget>
                 </item>
-                <item row="3" column="9" alignment="Qt::AlignHCenter">
-                 <widget class="QSpinBox" name="NumLabelStart">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="toolTip">
-                   <string/>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                  </property>
-                  <property name="buttonSymbols">
-                   <enum>QAbstractSpinBox::UpDownArrows</enum>
-                  </property>
-                  <property name="maximum">
-                   <number>100</number>
-                  </property>
-                 </widget>
-                </item>
-                <item row="3" column="8" alignment="Qt::AlignHCenter">
+                <item row="1" column="9" alignment="Qt::AlignHCenter">
                  <widget class="QLabel" name="numLabel">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
@@ -883,15 +861,15 @@
                    </font>
                   </property>
                   <property name="text">
-                   <string>Start number</string>
+                   <string>Start #</string>
                   </property>
                   <property name="buddy">
-                   <cstring>NumLabelStart</cstring>
+                   <cstring>NodeNumLabelStart</cstring>
                   </property>
                  </widget>
                 </item>
-                <item row="2" column="8" colspan="2" alignment="Qt::AlignHCenter">
-                 <widget class="QCheckBox" name="NumLabelCheckBox">
+                <item row="2" column="8" alignment="Qt::AlignHCenter">
+                 <widget class="QCheckBox" name="NodeNumLabelCheckBox">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
                     <horstretch>0</horstretch>
@@ -952,6 +930,115 @@
                   </property>
                   <property name="tristate">
                    <bool>false</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item row="3" column="8" alignment="Qt::AlignHCenter">
+                 <widget class="QCheckBox" name="EdgeNumLabelCheckBox">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="palette">
+                   <palette>
+                    <active>
+                     <colorrole role="WindowText">
+                      <brush brushstyle="SolidPattern">
+                       <color alpha="255">
+                        <red>103</red>
+                        <green>103</green>
+                        <blue>103</blue>
+                       </color>
+                      </brush>
+                     </colorrole>
+                    </active>
+                    <inactive>
+                     <colorrole role="WindowText">
+                      <brush brushstyle="SolidPattern">
+                       <color alpha="255">
+                        <red>103</red>
+                        <green>103</green>
+                        <blue>103</blue>
+                       </color>
+                      </brush>
+                     </colorrole>
+                    </inactive>
+                    <disabled>
+                     <colorrole role="WindowText">
+                      <brush brushstyle="SolidPattern">
+                       <color alpha="255">
+                        <red>120</red>
+                        <green>120</green>
+                        <blue>120</blue>
+                       </color>
+                      </brush>
+                     </colorrole>
+                    </disabled>
+                   </palette>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <pointsize>11</pointsize>
+                    <strikeout>false</strikeout>
+                   </font>
+                  </property>
+                  <property name="focusPolicy">
+                   <enum>Qt::TabFocus</enum>
+                  </property>
+                  <property name="layoutDirection">
+                   <enum>Qt::LeftToRight</enum>
+                  </property>
+                  <property name="text">
+                   <string>Number edges</string>
+                  </property>
+                  <property name="tristate">
+                   <bool>false</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item row="2" column="9" alignment="Qt::AlignHCenter">
+                 <widget class="QSpinBox" name="NodeNumLabelStart">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="toolTip">
+                   <string/>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                  </property>
+                  <property name="buttonSymbols">
+                   <enum>QAbstractSpinBox::UpDownArrows</enum>
+                  </property>
+                  <property name="maximum">
+                   <number>100</number>
+                  </property>
+                 </widget>
+                </item>
+                <item row="3" column="9" alignment="Qt::AlignHCenter">
+                 <widget class="QSpinBox" name="EdgeNumLabelStart">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="toolTip">
+                   <string/>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                  </property>
+                  <property name="buttonSymbols">
+                   <enum>QAbstractSpinBox::UpDownArrows</enum>
+                  </property>
+                  <property name="maximum">
+                   <number>100</number>
                   </property>
                  </widget>
                 </item>
@@ -1447,6 +1534,9 @@
                   <property name="decimals">
                    <number>1</number>
                   </property>
+                  <property name="minimum">
+                   <double>0.500000000000000</double>
+                  </property>
                   <property name="singleStep">
                    <double>0.500000000000000</double>
                   </property>
@@ -1857,6 +1947,9 @@
                   </property>
                   <property name="decimals">
                    <number>1</number>
+                  </property>
+                  <property name="minimum">
+                   <double>0.500000000000000</double>
                   </property>
                   <property name="singleStep">
                    <double>0.500000000000000</double>
@@ -2477,12 +2570,12 @@
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>477</x>
-     <y>354</y>
+     <x>683</x>
+     <y>352</y>
     </hint>
     <hint type="destinationlabel">
-     <x>962</x>
-     <y>66</y>
+     <x>1062</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>
@@ -2493,12 +2586,12 @@
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>170</x>
-     <y>291</y>
+     <x>171</x>
+     <y>289</y>
     </hint>
     <hint type="destinationlabel">
-     <x>962</x>
-     <y>66</y>
+     <x>1062</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>
@@ -2509,12 +2602,12 @@
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>536</x>
-     <y>291</y>
+     <x>609</x>
+     <y>289</y>
     </hint>
     <hint type="destinationlabel">
-     <x>962</x>
-     <y>66</y>
+     <x>1062</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>
@@ -2525,12 +2618,12 @@
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>226</x>
-     <y>325</y>
+     <x>238</x>
+     <y>323</y>
     </hint>
     <hint type="destinationlabel">
-     <x>962</x>
-     <y>66</y>
+     <x>1062</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>
@@ -2541,12 +2634,12 @@
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>339</x>
-     <y>213</y>
+     <x>378</x>
+     <y>183</y>
     </hint>
     <hint type="destinationlabel">
-     <x>962</x>
-     <y>66</y>
+     <x>1062</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>
@@ -2557,28 +2650,28 @@
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>332</x>
-     <y>355</y>
+     <x>378</x>
+     <y>353</y>
     </hint>
     <hint type="destinationlabel">
-     <x>962</x>
-     <y>66</y>
+     <x>1062</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>
   <connection>
-   <sender>NumLabelCheckBox</sender>
+   <sender>NodeNumLabelCheckBox</sender>
    <signal>stateChanged(int)</signal>
    <receiver>dragMode_radioButton</receiver>
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>575</x>
-     <y>324</y>
+     <x>653</x>
+     <y>183</y>
     </hint>
     <hint type="destinationlabel">
-     <x>962</x>
-     <y>66</y>
+     <x>1062</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>
@@ -2589,12 +2682,12 @@
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>164</x>
-     <y>354</y>
+     <x>168</x>
+     <y>352</y>
     </hint>
     <hint type="destinationlabel">
-     <x>962</x>
-     <y>66</y>
+     <x>1062</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>
@@ -2605,12 +2698,12 @@
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>408</x>
-     <y>185</y>
+     <x>449</x>
+     <y>211</y>
     </hint>
     <hint type="destinationlabel">
-     <x>962</x>
-     <y>66</y>
+     <x>1062</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>
@@ -2625,8 +2718,8 @@
      <y>206</y>
     </hint>
     <hint type="destinationlabel">
-     <x>962</x>
-     <y>66</y>
+     <x>1062</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>
@@ -2637,12 +2730,12 @@
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>476</x>
-     <y>291</y>
+     <x>539</x>
+     <y>289</y>
     </hint>
     <hint type="destinationlabel">
-     <x>962</x>
-     <y>66</y>
+     <x>1062</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>
@@ -2657,8 +2750,8 @@
      <y>149</y>
     </hint>
     <hint type="destinationlabel">
-     <x>962</x>
-     <y>66</y>
+     <x>1062</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>
@@ -2669,12 +2762,12 @@
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>409</x>
-     <y>206</y>
+     <x>469</x>
+     <y>183</y>
     </hint>
     <hint type="destinationlabel">
-     <x>962</x>
-     <y>66</y>
+     <x>1062</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>
@@ -2685,12 +2778,12 @@
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>256</x>
-     <y>213</y>
+     <x>284</x>
+     <y>211</y>
     </hint>
     <hint type="destinationlabel">
-     <x>962</x>
-     <y>66</y>
+     <x>1062</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>
@@ -2701,12 +2794,12 @@
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>179</x>
-     <y>213</y>
+     <x>197</x>
+     <y>211</y>
     </hint>
     <hint type="destinationlabel">
-     <x>962</x>
-     <y>66</y>
+     <x>1062</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>
@@ -2717,28 +2810,28 @@
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>332</x>
-     <y>325</y>
+     <x>378</x>
+     <y>323</y>
     </hint>
     <hint type="destinationlabel">
-     <x>962</x>
-     <y>66</y>
+     <x>1062</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>
   <connection>
-   <sender>NumLabelStart</sender>
+   <sender>NodeNumLabelStart</sender>
    <signal>valueChanged(int)</signal>
    <receiver>dragMode_radioButton</receiver>
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>585</x>
-     <y>354</y>
+     <x>667</x>
+     <y>211</y>
     </hint>
     <hint type="destinationlabel">
-     <x>962</x>
-     <y>54</y>
+     <x>1062</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>
@@ -2753,8 +2846,8 @@
      <y>304</y>
     </hint>
     <hint type="destinationlabel">
-     <x>948</x>
-     <y>56</y>
+     <x>1062</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>
@@ -2765,12 +2858,12 @@
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>471</x>
-     <y>324</y>
+     <x>537</x>
+     <y>322</y>
     </hint>
     <hint type="destinationlabel">
-     <x>934</x>
-     <y>60</y>
+     <x>1062</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>
@@ -2781,12 +2874,12 @@
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>477</x>
-     <y>204</y>
+     <x>542</x>
+     <y>352</y>
     </hint>
     <hint type="destinationlabel">
-     <x>929</x>
-     <y>62</y>
+     <x>1062</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>

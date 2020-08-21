@@ -33,6 +33,8 @@
 
 class HTML_Label : public QGraphicsTextItem
 {
+    Q_OBJECT
+
 public:
     HTML_Label(QGraphicsItem * parent = 0);
     void setTextInteraction(bool on, bool selectAll = false);
@@ -43,14 +45,15 @@ public:
     void setHtmlLabel(QString string);
     static QString strToHtml(QString str);
     QLabel * editTabLabel;
+    QString texLabelText;
+
+signals:
+    void editDone(QString);
 
 protected:
     void paint(QPainter * painter, const QStyleOptionGraphicsItem * option,
 	       QWidget * widget);
     bool eventFilter(QObject *obj, QEvent *event);
-
-private:
-    QString htmlLabelText;
 };
 
 #endif // LABEL_H

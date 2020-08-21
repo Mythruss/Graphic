@@ -2,7 +2,7 @@
  * File:    node.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.13
+ * Version: 1.14
  *
  * Purpose: creates a node for the users graph
  *
@@ -72,6 +72,10 @@
  * August 12 , 2020 (IC V1.13)
  *  (a) Updated the constructor to use global physicalDPI variable for node
  *      DPI.
+ * August 19, 2020 (V1.14)
+ *  (a) Removed the June 18th change and replaced the connection with one
+ *      that updates the label when the user is done editting it from the
+ *      canvas.
  */
 
 #include "defuns.h"
@@ -122,8 +126,8 @@ Node::Node()
     physicalDotsPerInchX = currentPhysicalDPI_X;
     checked = 0;
 
-    connect(htmlLabel->document(), SIGNAL(contentsChanged()),
-            this, SLOT(setNodeLabel()));
+    connect(htmlLabel, SIGNAL(editDone(QString)),
+            this, SLOT(setNodeLabel(QString)));
 }
 
 /*
@@ -515,29 +519,8 @@ void
 Node::setNodeLabel(QString aLabel)
 {
     label = aLabel;
+    htmlLabel->texLabelText = aLabel;
     labelToHtml();
-}
-
-
-/*
- * Name:        setNodeLabel()
- * Purpose:     Specifically used to update the label when changes are made
- *              to the htmllabel on the canvas in edit mode.
- * Argument:    QString
- * Output:      Nothing.
- * Modifies:    The node's label.
- * Returns:     Nothing.
- * Assumptions: None.
- * Bugs:        Sets the lineEdit text to u1 instead of u_{1} for subscripts.
- * Notes:       Not sure if anything should be done to htmlLabel.
- *              Edge.cpp and Node.cpp are very inconsistent in how they handle
- *              labels.
- */
-
-void
-Node::setNodeLabel()
-{
-    label = htmlLabel->document()->toPlainText().toLatin1().data();
 }
 
 
@@ -976,9 +959,10 @@ Node::mouseReleaseEvent(QGraphicsSceneMouseEvent * event)
  * Output:
  * Modifies:
  * Returns:
- * Assumptions:
+ * Assumptions: The focusIn events pertain to edit Tab widgets, not the
+ *              node itself.
  * Bugs:
- * Notes:       Try using QEvent::HoverEnter and QEvent::HoverLeave?
+ * Notes:       Try using QEvent::HoverEnter and QEvent::HoverLeave
  */
 
 bool

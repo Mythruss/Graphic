@@ -2,7 +2,7 @@
  * File:    main.cpp
  * Author:  Rachel Bood 100088769
  * Date:    2014/11/07
- * Version: 1.2
+ * Version: 1.4
  *
  * Purpose: executes the mainwindow.ui file
  *
@@ -15,6 +15,8 @@
  * June 6, 2020 (IC V1.3)
  *  (a) Call set_Interface_Sizes() after show() to get accurate sizehints
  *      when resizing the window.
+ * August 18, 2020 (IC V1.4)
+ *  (a) Added cmtt10 and cmsy10 fonts to be embeded.
  */
 
 #include "mainwindow.h"
@@ -30,6 +32,8 @@ main(int argc, char * argv[])
 
     QFontDatabase::addApplicationFont(":/fonts/cmmi10.ttf");
     QFontDatabase::addApplicationFont(":/fonts/cmr10.ttf");
+    QFontDatabase::addApplicationFont(":/fonts/cmsy10.ttf");
+    QFontDatabase::addApplicationFont(":/fonts/cmtt10.ttf");
     QFontDatabase::addApplicationFont(":/fonts/arimo.ttf");
 
     MainWindow w;

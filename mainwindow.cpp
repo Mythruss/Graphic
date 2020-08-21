@@ -2,7 +2,7 @@
  * File:	mainwindow.cpp
  * Author:	Rachel Bood
  * Date:	January 25, 2015.
- * Version:	1.49
+ * Version:	1.50
  *
  * Purpose:	Implement the main window and functions called from there.
  *
@@ -281,12 +281,16 @@
  * August 11, 2020 (IC V1.48)
  *  (a) A zoom function was added to the canvas similar to the one for the
  *      preview so zoomDisplay_2 needs to be scaled in set_Interface_Sizes().
- * August 12, 2020 (IC V1.48)
+ * August 12, 2020 (IC V1.49)
  *  (a) Cleaned up set_Interface_Sizes() to make the default scale code more
  *      readable. Currently, the scale is based on logicalDPI/72 for apple
- *      and logicalDPI/96 for any other machine and we only scale up.
- *      TODO: Should we ever scale down? Should we consider other default DPIs
- *      besides 72 and 96?
+ *      and logicalDPI/96 for any other machine.
+ * August 21, 2020 (IC V1.50)
+ *  (a) Added the ability to number edge labels similar to nodes. Edge labels
+ *      can now have numbered subscripts or simply numbered labels and the user
+ *      can specify the start number with EdgeNumLabelStart.
+ *  (b) Widgets related to numbering slightly renamed to indicate whether they
+ *      are related to an edge or a node for clarity.
  */
 
 #include "mainwindow.h"
@@ -336,11 +340,10 @@
 // Similar for vertex precision in .grphc output:
 #define VP_PREC_GRPHC  4
 
-static qreal screenLogicalDPI_X;
-static int j = 0; // # of rows in edit tab
-
 QSettings settings("Acadia", "Graphic");
 qreal currentPhysicalDPI, currentPhysicalDPI_X, currentPhysicalDPI_Y;
+
+static qreal screenLogicalDPI_X;
 
 /*
  * Name:	MainWindow
@@ -422,12 +425,12 @@ QMainWindow(parent),
     connect(ui->NodeLabelSize,
 	    (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
 	    this, [this]() { generate_Graph(nodeLabelSize_WGT); });
-    connect(ui->NumLabelCheckBox,
+    connect(ui->NodeNumLabelCheckBox,
 	    (void(QCheckBox::*)(bool))&QCheckBox::clicked,
-	    this, [this]() { generate_Graph(numLabelCheckBox_WGT); });
-    connect(ui->NumLabelStart,
+	    this, [this]() { generate_Graph(nodeNumLabelCheckBox_WGT); });
+    connect(ui->NodeNumLabelStart,
 	    (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
-	    this, [this]() { generate_Graph(numLabelStart_WGT); });
+	    this, [this]() { generate_Graph(nodeNumLabelStart_WGT); });
     connect(ui->NodeFillColor,
 	    (void(QPushButton::*)(bool))&QPushButton::clicked,
 	    this, [this]() { generate_Graph(nodeFillColour_WGT); });
@@ -446,6 +449,12 @@ QMainWindow(parent),
     connect(ui->EdgeLabelSize,
 	    (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
 	    this, [this]() { generate_Graph(edgeLabelSize_WGT); });
+    connect(ui->EdgeNumLabelCheckBox,
+            (void(QCheckBox::*)(bool))&QCheckBox::clicked,
+            this, [this]() { generate_Graph(edgeNumLabelCheckBox_WGT); });
+    connect(ui->EdgeNumLabelStart,
+            (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
+            this, [this]() { generate_Graph(edgeNumLabelStart_WGT); });
     connect(ui->EdgeLineColor,
 	    (void(QPushButton::*)(bool))&QPushButton::clicked,
 	    this, [this]() { generate_Graph(edgeLineColour_WGT); });
@@ -488,7 +497,7 @@ QMainWindow(parent),
 	    this, SLOT(nodeParamsUpdated()));
     connect(ui->NodeLabelSize, SIGNAL(valueChanged(int)),
 	    this, SLOT(nodeParamsUpdated()));
-    connect(ui->NumLabelCheckBox, SIGNAL(clicked(bool)),
+    connect(ui->NodeNumLabelCheckBox, SIGNAL(clicked(bool)),
 	    this, SLOT(nodeParamsUpdated()));
     connect(ui->NodeFillColor, SIGNAL(clicked(bool)),
 	    this, SLOT(nodeParamsUpdated()));
@@ -501,6 +510,8 @@ QMainWindow(parent),
 	    this, SLOT(edgeParamsUpdated()));
     connect(ui->EdgeLabelSize, SIGNAL(valueChanged(int)),
 	    this, SLOT(edgeParamsUpdated()));
+    connect(ui->EdgeNumLabelCheckBox, SIGNAL(clicked(bool)),
+            this, SLOT(edgeParamsUpdated()));
     connect(ui->EdgeLineColor, SIGNAL(clicked(bool)),
 	    this, SLOT(edgeParamsUpdated()));
 
@@ -1092,7 +1103,7 @@ saveTikZ(QTextStream &outfile, QVector<Node *> nodes)
 	outfile << "    n/.style={fill=defNodeFillColour, ";
     }
     else
-        outfile << "    n/.style={fill=" << defNodeFillColourName << ", ";
+	outfile << "    n/.style={fill=" << defNodeFillColourName << ", ";
 
     bool defineDefNodeLineColour = false;
     QColor defNodeLineColour
@@ -1104,7 +1115,7 @@ saveTikZ(QTextStream &outfile, QVector<Node *> nodes)
 	outfile << "draw=defNodeLineColour, shape=circle,\n";
     }
     else
-        outfile << "draw=" << defNodeLineColourName << ", shape=circle,\n";
+	outfile << "draw=" << defNodeLineColourName << ", shape=circle,\n";
 
     outfile << "\tminimum size=" << nodeDefaults.nodeDiameter << "in, "
 	    << "inner sep=0, "
@@ -1134,7 +1145,7 @@ saveTikZ(QTextStream &outfile, QVector<Node *> nodes)
 	outfile << "    e/.style={draw=" << defEdgeLineColourName;
 
     outfile << ", line width="
-            << QString::number(edgeDefaults.penSize / currentPhysicalDPI_X,
+	    << QString::number(edgeDefaults.penSize / currentPhysicalDPI_X,
 			       'f', ET_PREC_TIKZ) << "in},\n";
     outfile << "    l/.style={font=\\fontsize{" << edgeDefaults.labelSize
 	    << "}{1}\\selectfont}]\n";
@@ -2080,13 +2091,13 @@ MainWindow::select_Custom_Graph(QString graphName)
 	    edge->setColour(lineColor);
 	    if (fields.count() >= 11)
 	    {
-		edge->setLabelSize(fields.at(9).toFloat());
+		edge->setEdgeLabelSize(fields.at(9).toFloat());
 		// If the label has one or more commas, we must glue
 		// the fields back together.
 		QString l = fields.at(10);
 		for (int i = 11; i < fields.count(); i++)
 		    l += "," + fields.at(i);
-		edge->setLabel(l);
+		edge->setEdgeLabel(l);
 	    }
 	    edge->setParentItem(graph);
 	}
@@ -2134,8 +2145,8 @@ MainWindow::select_Custom_Graph(QString graphName)
     // clear to me how those numbers get set.
     graph->setPos(49, 15);
     qDeb() << "    graph NEW position is " << graph->x() << ", "
-           << graph->y();
-    graph->setRotation(-1 * ui->graphRotation->value());
+	   << graph->y();
+    graph->setRotation(-1 * ui->graphRotation->value(), false);
 
     ui->preview->scene()->clear();
     ui->preview->scene()->addItem(graph);
@@ -2175,7 +2186,7 @@ MainWindow::style_Graph(enum widget_ID what_changed)
 		ui->nodeDiameter->value(),
 		ui->NodeLabel1->text(),
 		ui->NodeLabel2->text(),
-		ui->NumLabelCheckBox->isChecked(),
+		ui->NodeNumLabelCheckBox->isChecked(),
 		ui->NodeLabelSize->value(),
 		ui->NodeFillColor->palette().window().color(),
 		ui->NodeOutlineColor->palette().window().color(),
@@ -2186,8 +2197,10 @@ MainWindow::style_Graph(enum widget_ID what_changed)
 		ui->graphWidth->value(),
 		ui->graphHeight->value(),
 		ui->graphRotation->value(),
-		ui->NumLabelStart->value(),
-		ui->nodeThickness->value());
+		ui->NodeNumLabelStart->value(),
+		ui->nodeThickness->value(),
+		ui->EdgeNumLabelCheckBox->isChecked(),
+		ui->EdgeNumLabelStart->value());
 	}
     }
 }
@@ -2416,7 +2429,7 @@ MainWindow::on_EdgeLineColor_clicked()
 
 
 /*
- * Name:	on_NumLabelCheckBox_clicked()
+ * Name:	on_NodeNumLabelCheckBox_clicked()
  * Purpose:
  * Arguments:
  * Outputs:
@@ -2429,10 +2442,31 @@ MainWindow::on_EdgeLineColor_clicked()
  */
 
 void
-MainWindow::on_NumLabelCheckBox_clicked(bool checked)
+MainWindow::on_NodeNumLabelCheckBox_clicked(bool checked)
 {
     ui->NodeLabel1->setDisabled(checked);
     ui->NodeLabel2->setDisabled(checked);
+}
+
+
+
+/*
+ * Name:	on_EdgeNumLabelCheckBox_clicked()
+ * Purpose:
+ * Arguments:
+ * Outputs:
+ * Modifies:
+ * Returns:
+ * Assumptions:
+ * Bugs:
+ * Notes:	Simplified by JD on Jan 25/2016 to use less lines of code.
+ *		(In honour of Robbie Burns?)
+ */
+
+void
+MainWindow::on_EdgeNumLabelCheckBox_clicked(bool checked)
+{
+    ui->EdgeLabel->setDisabled(checked);
 }
 
 
@@ -2489,7 +2523,8 @@ MainWindow::set_Font_Sizes()
     font.setPointSize(SUB_SUB_TITLE_SIZE - 1);
     ui->graphType_ComboBox->setFont(font);
     ui->complete_checkBox->setFont(font);
-    ui->NumLabelCheckBox->setFont(font);
+    ui->NodeNumLabelCheckBox->setFont(font);
+    ui->EdgeNumLabelCheckBox->setFont(font);
     ui->EdgeLabel->setFont(font);
     ui->NodeLabel1->setFont(font);
     ui->NodeLabel2->setFont(font);
@@ -2505,6 +2540,8 @@ MainWindow::set_Font_Sizes()
     ui->edgeThickness->setFont(font);
     ui->NodeLabelSize->setFont(font);
     ui->nodeDiameter->setFont(font);
+    ui->NodeNumLabelStart->setFont(font);
+    ui->EdgeNumLabelStart->setFont(font);
 }
 
 
@@ -2530,13 +2567,7 @@ MainWindow::set_Interface_Sizes()
 #else
     #define SYSTEM_DEFAULT_LOGICAL_DPI 96
 #endif
-    qreal scale;
-    // Do we ever need to scale down? Does anyone use a logical DPI below
-    // the system default? If so then maybe we should...?
-    if (screenLogicalDPI_X > SYSTEM_DEFAULT_LOGICAL_DPI)
-        scale = screenLogicalDPI_X / SYSTEM_DEFAULT_LOGICAL_DPI;
-    else
-        scale = 1;
+    qreal scale = screenLogicalDPI_X / SYSTEM_DEFAULT_LOGICAL_DPI;
 
     // Total width of tabWidget borders
     int borderWidth1 = (50 * scale);
@@ -2787,8 +2818,8 @@ MainWindow::nodeParamsUpdated()
     qDeb() << "MW::nodeParamsUpdated() called.";
 
     ui->canvas->setUpNodeParams(
-        ui->nodeDiameter->value(),
-	ui->NumLabelCheckBox->isChecked(),  // Useful?
+	ui->nodeDiameter->value(),
+	ui->NodeNumLabelCheckBox->isChecked(),  // Useful?
 	ui->NodeLabel1->text(),		    // Useful?
 	ui->NodeLabelSize->value(),
 	ui->NodeFillColor->palette().window().color(),
@@ -2817,10 +2848,11 @@ MainWindow::edgeParamsUpdated()
 	   << ui->EdgeLabelSize->value();
 
     ui->canvas->setUpEdgeParams(
-        ui->edgeThickness->value(),
+	ui->edgeThickness->value(),
 	ui->EdgeLabel->text(),
 	ui->EdgeLabelSize->value(),
-	ui->EdgeLineColor->palette().window().color());
+	ui->EdgeLineColor->palette().window().color(),
+	ui->EdgeNumLabelCheckBox->isChecked());  // Useful?
 }
 
 
@@ -2923,19 +2955,19 @@ MainWindow::updateEditTab(int index)
 		      QLabel * label4 = new QLabel("N diam");
 		      gridLayout->addWidget(label4, i, 3);
 		      QLabel * label5 = new QLabel("Label");
-		      gridLayout->addWidget(label4, i, 4);
+		      gridLayout->addWidget(label5, i, 4);
 		      QLabel * label6 = new QLabel("Text");
-		      gridLayout->addWidget(label5, i, 5);
+		      gridLayout->addWidget(label6, i, 5);
 		      QLabel * label7 = new QLabel("Size");
-		      gridLayout->addWidget(label6, i+1, 5);
+		      gridLayout->addWidget(label7, i+1, 5);
 		      QLabel * label8 = new QLabel("Line");
-		      gridLayout->addWidget(label7, i, 6);
+		      gridLayout->addWidget(label8, i, 6);
 		      QLabel * label9 = new QLabel("Color");
-		      gridLayout->addWidget(label8, i+1, 6);
+		      gridLayout->addWidget(label9, i+1, 6);
 		      QLabel * label10 = new QLabel("Fill");
-		      gridLayout->addWidget(label9, i, 7);
+		      gridLayout->addWidget(label10, i, 7);
 		      QLabel * label11 = new QLabel("Color");
-		      gridLayout->addWidget(label10, i+1, 7);
+		      gridLayout->addWidget(label11, i+1, 7);
 		      i += 2;
 
 		      // Horrible, ugly connects....
@@ -3101,9 +3133,6 @@ MainWindow::updateEditTab(int index)
 	  // TODO: the setRowStretch() was added 2019/11/18 because
 	  // the extra vertical space was being distributed *between*
 	  // the rows, rather than at the end.
-	  // But by itself it only "works" after something was deleted
-	  // from the graph and then we switch into the edit pane (or
-	  // out & back in).  After that it is OK.  Go figure.
 	  // Dumps core if setRowStretch(i - 1, 40) is called when i == 0.
 	  // So to get it to work I added a label with a blank at the
 	  // end of the section, and then it works.  Kludge.
