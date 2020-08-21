@@ -2,7 +2,7 @@
  * File:    edge.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.11
+ * Version: 1.13
  *
  * Purpose: creates an edge for the users graph
  *
@@ -66,6 +66,13 @@
  *      done in node.cpp.
  *  (b) Added eventFilter() to receive edit tab events so we can identify
  *      the edge being edited/looked at.
+ * August 19, 2020 (V1.12)
+ *  (a) Removed the June 18th change and replaced the connection with one
+ *      that updates the label when the user is done editting it from the
+ *      canvas.
+ * August 21, 2020 (IC V1.13)
+ *  (a) Added the ability to number edge labels similar to nodes so setLabel
+ *      has been replaced with copies of the label functions from node.cpp.
  */
 
 #include "edge.h"
@@ -123,8 +130,8 @@ Edge::Edge(Node * sourceNode, Node * destNode)
     htmlLabel = new HTML_Label(this);
     checked = 0;
 
-    connect(htmlLabel->document(), SIGNAL(contentsChanged()),
-            this, SLOT(setEdgeLabel()));
+    connect(htmlLabel, SIGNAL(editDone(QString)),
+            this, SLOT(setEdgeLabel(QString)));
 }
 
 
@@ -242,59 +249,124 @@ Edge::getRootParent()
 
 
 /*
- * Name:        setLabel(QString)
- * Purpose:     Set the label and htmlLabel of an edge.
- * Argument:    QString
+ * Name:        setEdgeLabel(int)
+ * Purpose:     Sets the label of the edge to an integer.
+ * Arguments:   An int, the edge label.
  * Output:      Nothing.
- * Modifies:    The edge's label and htmlLabel.
+ * Modifies:    The text in the edge label (both "htmlLabel" and "label" fields).
  * Returns:     Nothing.
  * Assumptions: None.
  * Bugs:        None.
- * Notes:       BOGUS ARCHAIC NOTES:
- *		Both the "unadorned" label and the HTML-ized htmlLabel are
- *		needed.  If the programmer tries to return the text in
- *		the htmlLabel it will return the text and QML/HTML tags
- *		used to style the text.
+ * Notes:       None.
  */
 
 void
-Edge::setLabel(QString aLabel)
+Edge::setEdgeLabel(int number)
 {
-    htmlLabel->setHtmlLabel(aLabel);
-    label = aLabel;
+    QString nlabel = QString::number(number);
+    setEdgeLabel(nlabel);
+}
 
-// TODO: why has this been commented out?  It seems we don't need it,
-// at least if we are not using subscripts in edge labels/htmlLabels.
-// Perhaps we don't need it for vertices either (in no sub/sup case).
-//    QRegExp re("\\d*");  // A digit (\d), zero or more times (*)
-//    label = aLabel;
-//    if (re.exactMatch(aLabel))
-//        htmlLabel->setHtml("<font face=\"cmr10\">" + aLabel + "</font>");
-//    else
-//        htmlLabel->setHtml("<font face=\"cmmi10\">" + aLabel + "</font>");
+
+
+/*
+ * Name:        setEdgeLabel(QString, int)
+ * Purpose:     Sets the label of the edge in the case where the label
+ *		has a numeric subscript.
+ * Arguments:   QString, int
+ * Output:      Nothing.
+ * Modifies:    The text in the edge label (both "htmlLabel" and "label" fields).
+ * Returns:     Nothing.
+ * Assumptions: none
+ * Bugs:        none
+ * Notes:       none
+ */
+
+void
+Edge::setEdgeLabel(QString aLabel, int number)
+{
+    setEdgeLabel(aLabel, QString::number(number));
+}
+
+
+
+/*
+ * Name:        setEdgeLabel(QString, QString)
+ * Purpose:     Sets the label of the edge in the case where the label
+ *		has a string subscript.
+ * Arguments:   QString, QString
+ * Output:      Nothing.
+ * Modifies:    The text in the edge label (both "text" and "label" fields).
+ * Returns:     Nothing.
+ * Assumptions: none
+ * Bugs:        none
+ * Notes:       none
+ */
+
+void
+Edge::setEdgeLabel(QString aLabel, QString subscript)
+{
+    QString newLabel = aLabel + "_{" + subscript + "}";
+    setEdgeLabel(newLabel);
+}
+
+
+
+/*
+ * Name:        setEdgeLabel(QString)
+ * Purpose:     Sets the label of the edge.
+ * Arguments:   QString
+ * Output:      Nothing.
+ * Modifies:    The text in the edge label (both "text" and "label" fields).
+ * Returns:     Nothing.
+ * Assumptions: none
+ * Bugs:        none
+ * Notes:       This is (apparently) called from the labelcontroller.cpp
+ *		callback, which doesn't distinguish between integer and
+ *		string.  So do a test to choose the correct font.
+ *		TODO: eh??
+ */
+
+void
+Edge::setEdgeLabel(QString aLabel)
+{
+    label = aLabel;
+    htmlLabel->texLabelText = aLabel;
+    labelToHtml();
 }
 
 
 /*
- * Name:        setEdgeLabel()
- * Purpose:     Specifically used to update the label when changes are made
- *              to the htmllabel on the canvas in edit mode.
- * Argument:    QString
- * Output:      Nothing.
- * Modifies:    The edge's label.
- * Returns:     Nothing.
- * Assumptions: None.
- * Bugs:        Sets the lineEdit text to u1 instead of u_{1} for subscripts.
- * Notes:       Not sure if anything should be done to htmlLabel.
- *              Edge.cpp and Node.cpp are very inconsistent in how they handle
- *              labels.
+ * Name:	labelToHtml()
+ * Purpose:	Call lbelToHtml2 to parse the label string, turn it
+ *		into HTML, wrap it in cmmi10 font tags, and return that text.
+ * Arguments:	None (uses this edge's label).
+ * Outputs:	Nothing.
+ * Modifies:	This edge's text field.
+ * Returns:	Nothing.
+ * Assumptions:
+ * Bugs:	Should return a success indication.
+ * Notes:	TeX outputs digits in math formula in cmr, and so if I
+ *		want this to look extremely TeX-like I actually need to
+ *		go around changing fonts depending on whether a char
+ *		is a digit or a non-digit.  **sigh**
+ *		TODO: something for another day; image exports will look
+ *
  */
 
 void
-Edge::setEdgeLabel()
+Edge::labelToHtml()
 {
-    label = htmlLabel->document()->toPlainText().toLatin1().data();
+    qDeb() << "labelToHtml() looking at edge " << getLabel()
+           << " with label " << label;
+
+    QString html = HTML_Label::strToHtml(label);
+    htmlLabel->setHtml(html);
+
+    qDeb() <<  "labelToHtml setting htmlLabel to /" << html
+           << "/ for /" << label << "/";
 }
+
 
 
 /*
@@ -644,7 +716,7 @@ Edge::getColour()
 
 
 /*
- * Name:        setLabelSize()
+ * Name:        setEdgeLabelSize()
  * Purpose:     Sets the font size of the edge label.
  * Arguments:   A qreal specifying the size, in points.
  * Output:      Nothing.
@@ -656,7 +728,7 @@ Edge::getColour()
  */
 
 void
-Edge::setLabelSize(qreal edgeLabelSize)
+Edge::setEdgeLabelSize(qreal edgeLabelSize)
 {
     QFont font = htmlLabel->font();
     font.setPointSize(edgeLabelSize);
@@ -822,7 +894,8 @@ Edge::paint(QPainter * painter, const QStyleOptionGraphicsItem * option,
  * Output:
  * Modifies:
  * Returns:
- * Assumptions:
+ * Assumptions: The focusIn events pertain to edit Tab widgets, not the
+ *              edge itself.
  * Bugs:
  * Notes:       Try using QEvent::HoverEnter and QEvent::HoverLeave
  */
@@ -841,30 +914,6 @@ Edge::eventFilter(QObject *obj, QEvent *event)
     update();
     return QObject::eventFilter(obj, event);
 }
-
-
-
-/*
- * Name:        edgeDeleted()
- * Purpose:     A signal emitted when an edge is deleted.
- * Arguments:   None
- * Output:      void
- * Modifies:    Nothing.
- * Returns:     Nothing.
- * Assumptions: None.
- * Bugs:        None.
- * Notes:       Currently signaling controllers to remove widgets from
- *		edit tab that were assigned to style this edge.  Since
- *		the edge is being deleted there is no reason to keep
- *		those widgets on the Edit tab.
- *		TO DO: should there be code here?
- */
-
-/*void
-Edge::edgeDeleted()
-{
-
-}*/
 
 
 

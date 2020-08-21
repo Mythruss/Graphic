@@ -2,7 +2,7 @@
  * File:	mainwindow.cpp
  * Author:	Rachel Bood
  * Date:	January 25, 2015.
- * Version:	1.49
+ * Version:	1.50
  *
  * Purpose:	Implement the main window and functions called from there.
  *
@@ -285,6 +285,12 @@
  *  (a) Cleaned up set_Interface_Sizes() to make the default scale code more
  *      readable. Currently, the scale is based on logicalDPI/72 for apple
  *      and logicalDPI/96 for any other machine.
+ * August 21, 2020 (IC V1.50)
+ *  (a) Added the ability to number edge labels similar to nodes. Edge labels
+ *      can now have numbered subscripts or simply numbered labels and the user
+ *      can specify the start number with EdgeNumLabelStart.
+ *  (b) Widgets related to numbering slightly renamed to indicate whether they
+ *      are related to an edge or a node for clarity.
  */
 
 #include "mainwindow.h"
@@ -419,12 +425,12 @@ QMainWindow(parent),
     connect(ui->NodeLabelSize,
 	    (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
 	    this, [this]() { generate_Graph(nodeLabelSize_WGT); });
-    connect(ui->NumLabelCheckBox,
+    connect(ui->NodeNumLabelCheckBox,
 	    (void(QCheckBox::*)(bool))&QCheckBox::clicked,
-	    this, [this]() { generate_Graph(numLabelCheckBox_WGT); });
-    connect(ui->NumLabelStart,
+	    this, [this]() { generate_Graph(nodeNumLabelCheckBox_WGT); });
+    connect(ui->NodeNumLabelStart,
 	    (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
-	    this, [this]() { generate_Graph(numLabelStart_WGT); });
+	    this, [this]() { generate_Graph(nodeNumLabelStart_WGT); });
     connect(ui->NodeFillColor,
 	    (void(QPushButton::*)(bool))&QPushButton::clicked,
 	    this, [this]() { generate_Graph(nodeFillColour_WGT); });
@@ -443,6 +449,12 @@ QMainWindow(parent),
     connect(ui->EdgeLabelSize,
 	    (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
 	    this, [this]() { generate_Graph(edgeLabelSize_WGT); });
+    connect(ui->EdgeNumLabelCheckBox,
+            (void(QCheckBox::*)(bool))&QCheckBox::clicked,
+            this, [this]() { generate_Graph(edgeNumLabelCheckBox_WGT); });
+    connect(ui->EdgeNumLabelStart,
+            (void(QSpinBox::*)(int))&QSpinBox::valueChanged,
+            this, [this]() { generate_Graph(edgeNumLabelStart_WGT); });
     connect(ui->EdgeLineColor,
 	    (void(QPushButton::*)(bool))&QPushButton::clicked,
 	    this, [this]() { generate_Graph(edgeLineColour_WGT); });
@@ -485,7 +497,7 @@ QMainWindow(parent),
 	    this, SLOT(nodeParamsUpdated()));
     connect(ui->NodeLabelSize, SIGNAL(valueChanged(int)),
 	    this, SLOT(nodeParamsUpdated()));
-    connect(ui->NumLabelCheckBox, SIGNAL(clicked(bool)),
+    connect(ui->NodeNumLabelCheckBox, SIGNAL(clicked(bool)),
 	    this, SLOT(nodeParamsUpdated()));
     connect(ui->NodeFillColor, SIGNAL(clicked(bool)),
 	    this, SLOT(nodeParamsUpdated()));
@@ -498,6 +510,8 @@ QMainWindow(parent),
 	    this, SLOT(edgeParamsUpdated()));
     connect(ui->EdgeLabelSize, SIGNAL(valueChanged(int)),
 	    this, SLOT(edgeParamsUpdated()));
+    connect(ui->EdgeNumLabelCheckBox, SIGNAL(clicked(bool)),
+            this, SLOT(edgeParamsUpdated()));
     connect(ui->EdgeLineColor, SIGNAL(clicked(bool)),
 	    this, SLOT(edgeParamsUpdated()));
 
@@ -2077,13 +2091,13 @@ MainWindow::select_Custom_Graph(QString graphName)
 	    edge->setColour(lineColor);
 	    if (fields.count() >= 11)
 	    {
-		edge->setLabelSize(fields.at(9).toFloat());
+		edge->setEdgeLabelSize(fields.at(9).toFloat());
 		// If the label has one or more commas, we must glue
 		// the fields back together.
 		QString l = fields.at(10);
 		for (int i = 11; i < fields.count(); i++)
 		    l += "," + fields.at(i);
-		edge->setLabel(l);
+		edge->setEdgeLabel(l);
 	    }
 	    edge->setParentItem(graph);
 	}
@@ -2172,7 +2186,7 @@ MainWindow::style_Graph(enum widget_ID what_changed)
 		ui->nodeDiameter->value(),
 		ui->NodeLabel1->text(),
 		ui->NodeLabel2->text(),
-		ui->NumLabelCheckBox->isChecked(),
+		ui->NodeNumLabelCheckBox->isChecked(),
 		ui->NodeLabelSize->value(),
 		ui->NodeFillColor->palette().window().color(),
 		ui->NodeOutlineColor->palette().window().color(),
@@ -2183,8 +2197,10 @@ MainWindow::style_Graph(enum widget_ID what_changed)
 		ui->graphWidth->value(),
 		ui->graphHeight->value(),
 		ui->graphRotation->value(),
-		ui->NumLabelStart->value(),
-		ui->nodeThickness->value());
+		ui->NodeNumLabelStart->value(),
+		ui->nodeThickness->value(),
+		ui->EdgeNumLabelCheckBox->isChecked(),
+		ui->EdgeNumLabelStart->value());
 	}
     }
 }
@@ -2413,7 +2429,7 @@ MainWindow::on_EdgeLineColor_clicked()
 
 
 /*
- * Name:	on_NumLabelCheckBox_clicked()
+ * Name:	on_NodeNumLabelCheckBox_clicked()
  * Purpose:
  * Arguments:
  * Outputs:
@@ -2426,10 +2442,31 @@ MainWindow::on_EdgeLineColor_clicked()
  */
 
 void
-MainWindow::on_NumLabelCheckBox_clicked(bool checked)
+MainWindow::on_NodeNumLabelCheckBox_clicked(bool checked)
 {
     ui->NodeLabel1->setDisabled(checked);
     ui->NodeLabel2->setDisabled(checked);
+}
+
+
+
+/*
+ * Name:	on_EdgeNumLabelCheckBox_clicked()
+ * Purpose:
+ * Arguments:
+ * Outputs:
+ * Modifies:
+ * Returns:
+ * Assumptions:
+ * Bugs:
+ * Notes:	Simplified by JD on Jan 25/2016 to use less lines of code.
+ *		(In honour of Robbie Burns?)
+ */
+
+void
+MainWindow::on_EdgeNumLabelCheckBox_clicked(bool checked)
+{
+    ui->EdgeLabel->setDisabled(checked);
 }
 
 
@@ -2486,7 +2523,8 @@ MainWindow::set_Font_Sizes()
     font.setPointSize(SUB_SUB_TITLE_SIZE - 1);
     ui->graphType_ComboBox->setFont(font);
     ui->complete_checkBox->setFont(font);
-    ui->NumLabelCheckBox->setFont(font);
+    ui->NodeNumLabelCheckBox->setFont(font);
+    ui->EdgeNumLabelCheckBox->setFont(font);
     ui->EdgeLabel->setFont(font);
     ui->NodeLabel1->setFont(font);
     ui->NodeLabel2->setFont(font);
@@ -2502,6 +2540,8 @@ MainWindow::set_Font_Sizes()
     ui->edgeThickness->setFont(font);
     ui->NodeLabelSize->setFont(font);
     ui->nodeDiameter->setFont(font);
+    ui->NodeNumLabelStart->setFont(font);
+    ui->EdgeNumLabelStart->setFont(font);
 }
 
 
@@ -2779,7 +2819,7 @@ MainWindow::nodeParamsUpdated()
 
     ui->canvas->setUpNodeParams(
 	ui->nodeDiameter->value(),
-	ui->NumLabelCheckBox->isChecked(),  // Useful?
+	ui->NodeNumLabelCheckBox->isChecked(),  // Useful?
 	ui->NodeLabel1->text(),		    // Useful?
 	ui->NodeLabelSize->value(),
 	ui->NodeFillColor->palette().window().color(),
@@ -2811,7 +2851,8 @@ MainWindow::edgeParamsUpdated()
 	ui->edgeThickness->value(),
 	ui->EdgeLabel->text(),
 	ui->EdgeLabelSize->value(),
-	ui->EdgeLineColor->palette().window().color());
+	ui->EdgeLineColor->palette().window().color(),
+	ui->EdgeNumLabelCheckBox->isChecked());  // Useful?
 }
 
 

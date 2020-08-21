@@ -49,7 +49,7 @@ public:
     Nodes nodes;
 
     QRectF boundingRect() const;
-    void setRotation(qreal aRotation, bool keepRotations);
+    void setRotation(qreal aRotation, bool keepRotation);
     qreal getRotation();
     QGraphicsItem * getRootParent();
 

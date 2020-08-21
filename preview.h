@@ -2,7 +2,7 @@
  * File:    preview.h
  * Author:  Rachel Bood 100088769
  * Date:    2014/11/07 (?)
- * Version: 1.6
+ * Version: 1.7
  *
  * Purpose: define the fields of the preview class.
  *
@@ -31,6 +31,9 @@
  *  (a) Added zoomChanged signal to tell the mainwindow to update zoomDisplay.
  * August 11, 2020 (IC V1.6)
  *  (a) Added wheelEvent to allow for zooming using the mouse wheel.
+ * August 21, 2020 (IC V1.7)
+ *  (a) Added the ability to number edge labels similar to nodes so style_graph
+ *      was updated with more parameters to accomodate the numbering.
  */
 
 #ifndef PREVIEW_H
@@ -64,7 +67,8 @@ class PreView: public QGraphicsView
 		       qreal edgeLabelSize,	    QColor edgeLineColor,
 		       qreal totalWidth,	    qreal totalHeight,
 		       qreal rotation,		    qreal numStart,
-		       qreal nodeThickness);
+		       qreal nodeThickness,	    bool edgeLabelsNumbered,
+		       qreal edgeNumStart);
 
   signals:
       void zoomChanged(QString zoomText);

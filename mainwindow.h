@@ -2,7 +2,7 @@
  * File:	mainwindow.h
  * Author:	Rachel Bood
  * Date:	January 25, 2015.
- * Version:	1.14
+ * Version:	1.16
  *
  * Purpose:	Define the MainWindow class.
  *
@@ -51,6 +51,9 @@
  *  (a) Added updateDpiAndPreview slot and settingsDialog variable to be used
  *      in conjunction with the new settingsDialog window which allows the user
  *      to use a custom DPI value instead of the system default.
+ * August 21, 2020 (IC V1.16)
+ *  (a) Added the ability to number edge labels similar to nodes so
+ *      on_EdgeNumLabelCheckBox_clicked was added as well.
  */
 
 
@@ -102,7 +105,8 @@ class MainWindow : public QMainWindow
     void on_NodeFillColor_clicked();
     void on_EdgeLineColor_clicked();
 
-    void on_NumLabelCheckBox_clicked(bool checked);
+    void on_NodeNumLabelCheckBox_clicked(bool checked);
+    void on_EdgeNumLabelCheckBox_clicked(bool checked);
     void on_graphType_ComboBox_currentIndexChanged(int index);
     void on_numOfNodes1_valueChanged(int arg1);
     void on_numOfNodes2_valueChanged(int arg1);

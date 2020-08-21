@@ -65,6 +65,7 @@ class CanvasView: public QGraphicsView
         QString label;
         qreal LabelSize;
         QColor color;
+        bool isNumbered;
     } Edge_Params;
 
     CanvasView(QWidget * parent = 0);
@@ -76,7 +77,8 @@ class CanvasView: public QGraphicsView
 			 QColor nodeFillColour, QColor nodeOutLineColour,
 			 qreal nodeThickness);
     void setUpEdgeParams(qreal edgeSize, QString edgeLabel,
-			 qreal edgeLabelSize, QColor edgeLineColour);
+                         qreal edgeLabelSize, QColor edgeLineColour,
+                         bool numberedLabels);
 
     Node * createNode(QPointF pos);
     Edge * createEdge(Node * source, Node * destination);

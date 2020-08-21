@@ -2,7 +2,7 @@
  * File:    graph.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07 (?)
- * Version: 1.2
+ * Version: 1.3
  *
  * Purpose:
  *
@@ -11,9 +11,13 @@
  *  (a) Fixed setRotation to properly rotate graph items while taking into
  *      account their previous rotation value.
  * August 12, 2020 (IC V1.2)
- *  (b) Reversed the previous change to setRotation since it was only needed
+ *  (a) Reversed the previous change to setRotation since it was only needed
  *      when graphs could be children of other graphs which can no longer
  *      happen.
+ * August 20, 2020 (IC V1.3)
+ *  (a) Once again changed setRotation back to the July 20 change. The issue
+ *      was that the GraphicsItem rotation call at the end of the function
+ *      wasn't using the additive rotation value but instead the passed value.
  */
 
 #include "graph.h"
@@ -143,7 +147,7 @@ QRectF Graph::boundingRect() const
  * Notes:       the nodes and edge labels need to be rotated in the opposite direction
  *              otherwise the labels of the edges and nodes won't be easily read
  */
-void Graph::setRotation(qreal aRotation, bool keepRotations)
+void Graph::setRotation(qreal aRotation, bool keepRotation)
 {
     QList<QGraphicsItem *> list;
     foreach (QGraphicsItem * gItem, this->childItems())
@@ -162,7 +166,7 @@ void Graph::setRotation(qreal aRotation, bool keepRotations)
                 else if (child->type() == Node::Type)
                 {
                     Node * node = qgraphicsitem_cast<Node*>(child);
-                    if (keepRotations)
+                    if (keepRotation)
                         node->setRotation(node->getRotation() + -aRotation);
                     else
                         node->setRotation(-aRotation);
@@ -170,7 +174,7 @@ void Graph::setRotation(qreal aRotation, bool keepRotations)
                 else if(child->type() == Edge::Type)
                 {
                     Edge * edge = qgraphicsitem_cast<Edge*>(child);
-                    if (keepRotations)
+                    if (keepRotation)
                         edge->setRotation(edge->getRotation() + -aRotation);
                     else
                         edge->setRotation(-aRotation);
@@ -179,11 +183,11 @@ void Graph::setRotation(qreal aRotation, bool keepRotations)
             }
         }
     }
-    if (keepRotations)
+    if (keepRotation)
         rotation = getRotation() + aRotation;
     else
         rotation = aRotation;
-    QGraphicsItem::setRotation(aRotation);
+    QGraphicsItem::setRotation(rotation);
 }
 
 

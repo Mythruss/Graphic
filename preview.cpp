@@ -2,7 +2,7 @@
  * File:    preview.cpp
  * Author:  Rachel Bood 100088769
  * Date:    2014/11/07
- * Version: 1.12
+ * Version: 1.13
  *
  * Purpose: Initializes a QGraphicsView that is used to house the QGraphicsScene
  *
@@ -69,6 +69,9 @@
  *  (a) Updated Style_Graph() to use global physicalDPI values for xDPI and
  *      yDPI.
  *  (b) Created macros to be used for zoom level min and max for clarity.
+ * August 21, 2020 (IC V1.13)
+ *  (a) Added the ability to number edge labels similar to nodes so style_graph
+ *      was updated to accomodate the numbering.
  */
 
 #include "basicgraphs.h"
@@ -477,17 +480,19 @@ void
 PreView::Style_Graph(Graph * graph,		    int graphType,
 		     enum widget_ID what_changed,   qreal nodeDiameter,
 		     QString topNodeLabels,	    QString bottomNodeLabels,
-		     bool labelsAreNumbered,	    qreal nodeLabelSize,
+		     bool nodeLabelsNumbered,	    qreal nodeLabelSize,
 		     QColor nodeFillColor,	    QColor nodeOutlineColor,
 		     qreal edgeSize,		    QString edgeLabel,
 		     qreal edgeLabelSize,	    QColor edgeLineColor,
 		     qreal totalWidth,		    qreal totalHeight,
-		     qreal rotation,		    qreal numStart,
-		     qreal nodeThickness)
+		     qreal rotation,		    qreal nodeNumStart,
+		     qreal nodeThickness,	    bool edgeLabelsNumbered,
+		     qreal edgeNumStart)
 {
     qDeb() << "PV::Style_Graph(wid:" << what_changed << ") called.";
 
-    int i = numStart, j = numStart;
+    int i = nodeNumStart, j = nodeNumStart;
+    int k = edgeNumStart;
 
     // The w & h args are *total* w & h for the graph, but we need to
     // locate the center of the nodes.  So first calculate the
@@ -530,12 +535,12 @@ PreView::Style_Graph(Graph * graph,		    int graphType,
 	    if (what_changed == ALL_WGT
 		|| what_changed == nodeLabel1_WGT
 		|| what_changed == nodeLabel2_WGT
-		|| what_changed == numLabelCheckBox_WGT
-		|| what_changed == numLabelStart_WGT)
+		|| what_changed == nodeNumLabelCheckBox_WGT
+		|| what_changed == nodeNumLabelStart_WGT)
 	    {
 		// Clear the node label, in case it was set previously.
 		node->setNodeLabel("");
-		if (labelsAreNumbered)
+		if (nodeLabelsNumbered)
 		    node->setNodeLabel(i++);
 		else if (graphType == BasicGraphs::Bipartite)
 		{
@@ -567,13 +572,18 @@ PreView::Style_Graph(Graph * graph,		    int graphType,
 	    GUARD(edgeThickness_WGT) edge->setPenWidth(edgeSize);
 	    GUARD(edgeLineColour_WGT) edge->setColour(edgeLineColor);
 	    GUARD(edgeLabelSize_WGT)
-		edge->setLabelSize((edgeLabelSize > 0) ? edgeLabelSize : 1);
-	    GUARD(edgeLabel_WGT)
+		edge->setEdgeLabelSize((edgeLabelSize > 0) ? edgeLabelSize : 1);
+	    if (what_changed == ALL_WGT
+		|| what_changed == edgeLabel_WGT
+		|| what_changed == edgeNumLabelCheckBox_WGT
+		|| what_changed == edgeNumLabelStart_WGT)
 	    {
-		if (edgeLabel.length() != 0)
-		    edge->setLabel(edgeLabel);
-		else
-		    edge->setLabel("");	// Clear any old label
+		// Clear the edge label, in case it was set previously.
+		edge->setEdgeLabel("");
+		if (edgeLabelsNumbered)
+		    edge->setEdgeLabel(k++);
+		else if (edgeLabel.length() != 0)
+		    edge->setEdgeLabel(edgeLabel, k++);
 	    }
 	    GUARD(nodeDiam_WGT) edge->setDestRadius(nodeDiameter / 2.);
 	    // Q: why did RB do this?  It gives a bizarre value.
