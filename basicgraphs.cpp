@@ -2,7 +2,7 @@
  * File:	basicgraphs.cpp
  * Author:	Rachel Bood
  * Date:	Dec 31, 2015 (?)
- * Version:	1.6
+ * Version:	1.7
  *
  * Purpose:	Implement functions which draw all the "known" graph types.
  *
@@ -57,6 +57,9 @@
  * Aug 25, 2020 (IC V1.6)
  *  (a) Added a new basicGraphs category, circulant graph which creates
  *      a cycle along with edges based on a list of offsets.
+ * Aug 27, 2020 (JD V1.7)
+ *  (a) Modified the function which creates circulant graphs to remove
+ *	need for regexps and tweak the code a bit.
  */
 
 #include "basicgraphs.h"
@@ -79,10 +82,10 @@ BasicGraphs::BasicGraphs()
 {
     // This must agree with the Graph_Type enum defined in basicgraphs.h.
     Graph_Type_Name = { "None", "Antiprism", "Balanced Binary Tree",
-			"Bipartite", "Circulant", "Complete", "Crown",
-			"Cycle", "Dutch Windmill", "Gear (generalized)",
-			"Grid", "Helm", "Path", "Petersen (generalized)",
-			"Prism", "Star", "Wheel"
+                        "Bipartite", "Circulant", "Complete", "Crown",
+                        "Cycle", "Dutch Windmill", "Gear (generalized)",
+                        "Grid", "Helm", "Path", "Petersen (generalized)",
+                        "Prism", "Star", "Wheel"
     };
 }
 
