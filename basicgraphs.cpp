@@ -79,10 +79,10 @@ BasicGraphs::BasicGraphs()
 {
     // This must agree with the Graph_Type enum defined in basicgraphs.h.
     Graph_Type_Name = { "None", "Antiprism", "Balanced Binary Tree",
-                        "Bipartite", "Circulant", "Complete", "Crown",
-                        "Cycle", "Dutch Windmill", "Gear (generalized)",
-                        "Grid", "Helm", "Path", "Petersen (generalized)",
-                        "Prism", "Star", "Wheel"
+			"Bipartite", "Circulant", "Complete", "Crown",
+			"Cycle", "Dutch Windmill", "Gear (generalized)",
+			"Grid", "Helm", "Path", "Petersen (generalized)",
+			"Prism", "Star", "Wheel"
     };
 }
 
