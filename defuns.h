@@ -2,7 +2,7 @@
  * File:	defuns.h
  * Author:	Jim Diamond
  * Date:	2019-12-10
- * Version:	1.7
+ * Version:	1.9
  *
  * Purpose:	Hold definitions that are needed by multiple classes
  *		and yet don't seem to meaningfully fit anywhere else.
@@ -36,6 +36,12 @@
  * Aug 18, 2020 (JD V1.7)
  *  (a) Add '#include <QDebug>' when DEBUG is defined, otherwise in some
  *      cases the compiler whines bitterly and pukes on your shoes.
+ * Aug 21, 2020 (IC V1.8)
+ *  (a) Added edgeNumLabelCheckbox_WGT and edgeNumLabelStart_WGT.
+ *  (b) Renamed numLabelCheckbox_WGT to nodeNumLabelCheckbox_WGT
+ *      and numLabelStart_WGT to nodeNumLabelStart_WGT for clarity.
+ * Aug 24, 2020 (IC V1.9)
+ *  (a) Added offsets_WGT
  */
 
 #ifndef DEFUNS_H
@@ -69,7 +75,7 @@ enum widget_ID {NO_WGT, ALL_WGT, nodeDiam_WGT, nodeLabel1_WGT, nodeLabel2_WGT,
 		edgeLabelSize_WGT, edgeLineColour_WGT, graphRotation_WGT,
 		completeCheckBox_WGT, graphHeight_WGT, graphWidth_WGT,
 		numOfNodes1_WGT, numOfNodes2_WGT, graphTypeComboBox_WGT,
-		nodeNumLabelStart_WGT, nodeThickness_WGT,
+		nodeNumLabelStart_WGT, nodeThickness_WGT, offsets_WGT,
 		edgeNumLabelCheckBox_WGT, edgeNumLabelStart_WGT};
 
 #endif

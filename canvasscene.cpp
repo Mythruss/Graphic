@@ -2,7 +2,7 @@
  * File:    canvasscene.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.18
+ * Version: 1.20
  *
  * Purpose: Initializes a QGraphicsScene to implement a drag and drop feature.
  *          still very much a WIP
@@ -82,6 +82,13 @@
  *      The rotation of root2 needs to take into account any previous rotation.
  *  (b) Added code to the keyReleaseEvent that checks if both sets of nodes
  *      in a 4-node join were connected by an edge and thus to remove one.
+ * August 26, 2020 (IC V1.19)
+ *  (a) Added updateCellSize which changes the size of mCellSize based on
+ *      the user's input to the cellSize widget on the UI and redraws the
+ *      cells accordingly.
+ * August 27, 2020 (IC V1.20)
+ *  (a) updateCellSize now uses the saved settings value to determine the size
+ *      of grid cells.
  */
 
 #include "canvasscene.h"
@@ -120,6 +127,15 @@ CanvasScene::CanvasScene()
     undoPositions = QList<undo_Node_Pos*>();
 }
 
+
+void
+CanvasScene::updateCellSize()
+{
+    QSize newCellSize(settings.value("gridCellSize").toInt(),
+                      settings.value("gridCellSize").toInt());
+    mCellSize = newCellSize;
+    update();
+}
 
 
 // We get many of these events when dragging the graph from the

@@ -3,7 +3,7 @@
  * File:	canvasscene.h
  * Author:	Rachel Bood
  * Date:	?
- * Version:	1.5
+ * Version:	1.6
  *
  * Purpose:
  *
@@ -23,6 +23,11 @@
  * July 31, 2020 (IC V1.5)
  *  (a) Added somethingChanged() signal to tell mainWindow that something has
  *      changed on the canvas and thus a new save prompt is necessary.
+ * August 26, 2020 (IC V1.6)
+ *  (a) Changed mCellSize from a const so that it may be changed.
+ *  (b) Added updateCellSize which changes the size of mCellSize based on
+ *      the user's input to the cellSize widget on the UI and redraws the
+ *      cells accordingly.
  */
 
 #ifndef CANVASSCENE_H
@@ -52,6 +57,9 @@ public:
     void setCanvasMode(int mode);
     void searchAndSeparate(QList<Node *> adjacentNodes);
 
+public slots:
+    void updateCellSize();
+
 signals:
     void graphDropped();
     void graphJoined();
@@ -72,7 +80,7 @@ private:
     int modeType;
     bool snapToGrid;
     bool moved = false;
-    const QSize mCellSize;		// The size of the cells in the grid.
+    QSize mCellSize;                    // The size of the cells in the grid.
     QGraphicsItem * mDragged;		// The item being dragged.
     Node * connectNode1a, * connectNode1b; // The first Nodes to be joined.
     Node * connectNode2a, * connectNode2b; // The second Nodes to be joined.

@@ -892,7 +892,7 @@ Edge::paint(QPainter * painter, const QStyleOptionGraphicsItem * option,
  *              we can identify the edge being edited.
  * Arguments:
  * Output:
- * Modifies:
+ * Modifies:    The penstyle of the edge line.
  * Returns:
  * Assumptions: The focusIn events pertain to edit Tab widgets, not the
  *              edge itself.

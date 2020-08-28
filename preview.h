@@ -2,7 +2,7 @@
  * File:    preview.h
  * Author:  Rachel Bood 100088769
  * Date:    2014/11/07 (?)
- * Version: 1.7
+ * Version: 1.8
  *
  * Purpose: define the fields of the preview class.
  *
@@ -34,6 +34,9 @@
  * August 21, 2020 (IC V1.7)
  *  (a) Added the ability to number edge labels similar to nodes so style_graph
  *      was updated with more parameters to accomodate the numbering.
+ * August 25, 2020 (IC V1.8)
+ *  (a) New basicGraphs category added, circulant, so create_Basic_Graph takes
+ *      a new argument, offsets.
  */
 
 #ifndef PREVIEW_H
@@ -56,7 +59,8 @@ class PreView: public QGraphicsView
       void zoomIn();
       void zoomOut();
       void Create_Basic_Graph(int graphType, int numOfNodes1, int numOfNodes2,
-			      qreal nodeDiameter, bool drawEdges);
+                              qreal nodeDiameter, bool drawEdges,
+                              QString offsets);
 
       void Style_Graph(Graph * graph, int graphType,
 		       enum widget_ID what_changed, qreal nodeDiameter,

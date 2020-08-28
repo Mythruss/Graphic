@@ -2,7 +2,7 @@
  * File:	basicgraphs.cpp
  * Author:	Rachel Bood
  * Date:	Dec 31, 2015 (?)
- * Version:	1.5
+ * Version:	1.6
  *
  * Purpose:	Implement functions which draw all the "known" graph types.
  *
@@ -54,6 +54,9 @@
  *  (e) Modify generate_gear() so that the gear is as large as
  *	possible while still fitting inside the bounding box (as with
  *	all the above, while scaling X and Y equally).
+ * Aug 25, 2020 (IC V1.6)
+ *  (a) Added a new basicGraphs category, circulant graph which creates
+ *      a cycle along with edges based on a list of offsets.
  */
 
 #include "basicgraphs.h"
@@ -76,10 +79,10 @@ BasicGraphs::BasicGraphs()
 {
     // This must agree with the Graph_Type enum defined in basicgraphs.h.
     Graph_Type_Name = { "None", "Antiprism", "Balanced Binary Tree",
-			"Bipartite", "Complete", "Crown", "Cycle",
-			"Dutch Windmill", "Gear (generalized)", "Grid",
-			"Helm", "Path", "Petersen (generalized)",
-			"Prism", "Star", "Wheel"
+                        "Bipartite", "Circulant", "Complete", "Crown",
+                        "Cycle", "Dutch Windmill", "Gear (generalized)",
+                        "Grid", "Helm", "Path", "Petersen (generalized)",
+                        "Prism", "Star", "Wheel"
     };
 }
 
@@ -417,6 +420,89 @@ BasicGraphs::generate_bipartite(Graph * g, int topNodes, int bottomNodes,
 				   g->nodes.bipartite_bottom.at(j));
 	    edge->setParentItem(g);
 	}
+}
+
+
+
+/*
+ * Name:	generate_circulant()
+ * Purpose:	Generate a circulant graph.
+ * Arguments:	The graph g, the number of nodes, the list of edge offsets,
+ *              and whether to draw edges.
+ * Outputs:	Nothing.
+ * Modifies:	g
+ * Returns:	Nothing.
+ * Assumptions:	None.
+ * Bugs:	There must be a more elegant way to get the list of
+ *		numbers out of the offsets string.  And note that
+ *		stringstream is grotesque, not elegant.
+ * Notes:	Any characters other than digits are used only as delimiters.
+ *		Thus even if the UI allows negative numbers or
+ *		arithmetic expressions to be entered, this function won't
+ *		produce the intended (by the user) result.
+ */
+
+void
+BasicGraphs::generate_circulant(Graph * g, int numOfNodes, QString offsets,
+                                bool drawEdges)
+{
+    qreal width = 0.5;
+    qreal height = 0.5;
+    QList<int> offsetsList;
+
+    qDebu("BG:generate_circulant(, %d, '%s', %s) called",
+	  numOfNodes, offsets.toLocal8Bit().data(),
+	  drawEdges ? "true" : "false");
+
+    // Need to parse the offsets string into a list of numbers
+    int i = 0;
+    while (i < offsets.length())
+    {
+	int num = 0;
+	if (offsets.at(i).isDigit())
+	{
+	    while (i < offsets.length() && offsets.at(i).isDigit())
+		num = 10 * num + offsets.at(i++).digitValue();
+	    offsetsList.append(num);
+	    qDebu("   added %d to offsetList", num);
+	}
+	i++;
+    }
+
+    g->nodes.cycle = create_cycle(g, width, height, numOfNodes);
+
+    if (! drawEdges)
+        return;
+
+    for (int i = 0; i < numOfNodes; i++)
+    {
+	Node * firstNode = g->nodes.cycle.at(i);
+        foreach (int num, offsetsList)
+        {
+            if (0 < num && num < g->nodes.cycle.count())
+            {
+                // Prevent duplicate edges from being made
+                bool edgeExists = false;
+		Node * secondNode = g->nodes.cycle.at((i + num) % numOfNodes);
+                foreach (Edge * edge, firstNode->edges())
+                {
+                    if ((edge->destNode() == firstNode
+			 && edge->sourceNode() == secondNode)
+			|| (edge->sourceNode() == firstNode
+			    && edge->destNode() == secondNode))
+		    {
+			edgeExists = true;
+			break;
+		    }		    
+                }
+                if (!edgeExists)
+                {
+                    Edge * edge = new Edge(firstNode, secondNode);
+                    edge->setParentItem(g);
+                }
+            }
+        }
+    }
 }
 
 
@@ -1047,9 +1133,6 @@ BasicGraphs::generate_wheel(Graph * g, int numOfNodes, bool drawEdges)
 	edge->setParentItem(g);
     }
 }
-
-
-
 
 
 QString

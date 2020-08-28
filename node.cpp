@@ -2,7 +2,7 @@
  * File:    node.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.14
+ * Version: 1.15
  *
  * Purpose: creates a node for the users graph
  *
@@ -69,13 +69,16 @@
  * July 29, 2020 (IC V1.12)
  *  (a) Added eventFilter() to receive edit tab events so we can identify
  *      the node being edited/looked at.
- * August 12 , 2020 (IC V1.13)
+ * August 12, 2020 (IC V1.13)
  *  (a) Updated the constructor to use global physicalDPI variable for node
  *      DPI.
- * August 19, 2020 (V1.14)
+ * August 19, 2020 (IC V1.14)
  *  (a) Removed the June 18th change and replaced the connection with one
  *      that updates the label when the user is done editting it from the
  *      canvas.
+ * August 26, 2020 (IC V1.15)
+ *  (a) Save the current penstyle when an associated edit tab widget sends
+ *      a focusIn event and restore the penstyle during the focusOut event.
  */
 
 #include "defuns.h"
@@ -957,7 +960,7 @@ Node::mouseReleaseEvent(QGraphicsSceneMouseEvent * event)
  *              we can identify the node being edited.
  * Arguments:
  * Output:
- * Modifies:
+ * Modifies:    The penstyle of the node outline.
  * Returns:
  * Assumptions: The focusIn events pertain to edit Tab widgets, not the
  *              node itself.
@@ -970,11 +973,12 @@ Node::eventFilter(QObject *obj, QEvent *event)
 {
     if (event->type() == QEvent::FocusIn)
     {
+        tempPenStyle = penStyle;
         chosen(2);
     }
     else if (event->type() == QEvent::FocusOut)
     {
-        chosen(0);
+        chosen(tempPenStyle);
     }
     return QObject::eventFilter(obj, event);
 }

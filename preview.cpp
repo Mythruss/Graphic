@@ -2,7 +2,7 @@
  * File:    preview.cpp
  * Author:  Rachel Bood 100088769
  * Date:    2014/11/07
- * Version: 1.13
+ * Version: 1.14
  *
  * Purpose: Initializes a QGraphicsView that is used to house the QGraphicsScene
  *
@@ -72,6 +72,9 @@
  * August 21, 2020 (IC V1.13)
  *  (a) Added the ability to number edge labels similar to nodes so style_graph
  *      was updated to accomodate the numbering.
+ * August 25, 2020 (IC V1.14)
+ *  (a) New basicGraphs category added, circulant, so create_Basic_Graph takes
+ *      a new argument, offsets, and has a new case to generate_Circulant
  */
 
 #include "basicgraphs.h"
@@ -363,7 +366,8 @@ PreView::zoomOut()
 
 void
 PreView::Create_Basic_Graph(int graphType, int numOfNodes1, int numOfNodes2,
-			    qreal nodeDiameter, bool drawEdges)
+			    qreal nodeDiameter, bool drawEdges,
+			    QString offsets)
 {
     // This param is here for the day when some basic graph drawing
     // algorithm needs this.  Dutch Windmill comes to mind, as does prism.
@@ -390,6 +394,10 @@ PreView::Create_Basic_Graph(int graphType, int numOfNodes1, int numOfNodes2,
 
       case BasicGraphs::Bipartite:
         basicG->generate_bipartite(g, numOfNodes1, numOfNodes2, drawEdges);
+        break;
+
+      case BasicGraphs::Circulant:
+        basicG->generate_circulant(g, numOfNodes1, offsets, drawEdges);
         break;
 
       case BasicGraphs::Complete:
@@ -442,7 +450,7 @@ PreView::Create_Basic_Graph(int graphType, int numOfNodes1, int numOfNodes2,
 
       default:
         // This should never happen!  Do not change to qDeb().
-        // (IC: Sure it can; Everytime you select "Select Graph Type"
+        // (IC: Sure it can; Everytime you select "Select Graph Type")
 	qDebug() << "PV::Create_Graph(): unknown/invalid graph index "
 		 << graphType;
         break;

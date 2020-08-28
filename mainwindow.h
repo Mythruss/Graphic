@@ -142,6 +142,7 @@ private:
     QList<Graph *> graphList;
     bool promptSave = false;
     SettingsDialog * settingsDialog;
+    QLineEdit * offsets;
 };
 
 #endif // MAINWINDOW_H

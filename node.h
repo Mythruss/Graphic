@@ -2,7 +2,7 @@
  * File:    node.cpp
  * Author:  Rachel Bood
  * Date:    2014/11/07
- * Version: 1.9
+ * Version: 1.10
  *
  * Purpose: Declare the node class.
  * 
@@ -38,6 +38,9 @@
  * July 29, 2020 (IC V1.9)
  *  (a) Added eventFilter() to receive edit tab events so we can identify
  *      the node being edited/looked at.
+ * August 26, 2020 (IC V1.10)
+ *  (a) Added tempPenStyle for saving and restoring penstyle during edit tab
+ *      focus events.
  */
 
 
@@ -132,7 +135,7 @@ class Node : public QGraphicsObject
     QString	label;
     QColor	nodeLine, nodeFill;
     int		nodeID;		    // The (internal) number of the node.
-    int		penStyle;
+    int		penStyle, tempPenStyle;
     qreal	penSize;
     bool	select;
     void	labelToHtml();
